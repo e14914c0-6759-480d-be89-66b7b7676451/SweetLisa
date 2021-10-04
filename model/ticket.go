@@ -2,15 +2,19 @@ package model
 
 import "time"
 
-const BucketSig = "sig"
+const (
+	BucketTicket = "ticket"
+	TicketLength = 52
+)
 
-type Sig struct {
-	Sig    string
-	Expire time.Time
+type Ticket struct {
+	Ticket         string
+	ChatIdentifier string
+	ExpireAt       time.Time
 }
 
 func init() {
 	go ExpireCleanBackground(BucketVerification, 1*time.Hour, func(v interface{}, now time.Time) (expired bool) {
-		return now.After(v.(Sig).Expire)
+		return now.After(v.(Ticket).ExpireAt)
 	})()
 }

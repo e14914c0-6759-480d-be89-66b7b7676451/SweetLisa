@@ -7,10 +7,11 @@ import (
 
 const BucketVerification = "verification"
 
-var VerificationTimeoutErr = fmt.Errorf("verification timeout")
+var VerificationExpiredErr = fmt.Errorf("verification expired")
 
 type Verification struct {
-	Expire         time.Time
+	Code           string
+	ExpireAt       time.Time
 	ChatIdentifier string
 	Progress       VerificationProgress
 }
@@ -19,11 +20,11 @@ type VerificationProgress int
 
 const (
 	VerificationWaiting = iota
-	VerificationPass
+	VerificationDone
 )
 
 func init() {
-	go ExpireCleanBackground(BucketVerification, 60*time.Second, func(v interface{}, now time.Time) (expired bool) {
-		return now.After(v.(Verification).Expire)
+	go ExpireCleanBackground(BucketVerification, 10*time.Second, func(v interface{}, now time.Time) (expired bool) {
+		return now.After(v.(Verification).ExpireAt)
 	})()
 }

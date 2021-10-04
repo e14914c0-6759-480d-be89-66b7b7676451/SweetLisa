@@ -13,6 +13,9 @@ import (
 
 // NewVerification generates a new verification and returns the verificationCode
 func NewVerification(chatIdentifier string) (verificationCode string, err error) {
+	if chatIdentifier == "" {
+		return "", fmt.Errorf("chatIdentifier cannot be empty")
+	}
 	err = db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
@@ -29,7 +32,8 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 			}
 		}
 		verification := model.Verification{
-			Expire:         time.Now().Add(1 * time.Minute),
+			Code:           verificationCode,
+			ExpireAt:       time.Now().Add(1 * time.Minute),
 			ChatIdentifier: chatIdentifier,
 			Progress:       model.VerificationWaiting,
 		}
@@ -45,8 +49,8 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 	return verificationCode, nil
 }
 
-// Verify verifies if given verificationCode and chatIdentifier can pass the verification
-func Verify(verificationCode string, chatIdentifier string) error {
+// VerificationDone verifies if given verificationCode and chatIdentifier can pass the verification
+func VerificationDone(verificationCode string, chatIdentifier string) error {
 	return db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
@@ -66,14 +70,14 @@ func Verify(verificationCode string, chatIdentifier string) error {
 		if verification.ChatIdentifier != chatIdentifier {
 			return fmt.Errorf("invalid verification code")
 		}
-		if time.Now().After(verification.Expire) {
-			return model.VerificationTimeoutErr
+		if time.Now().After(verification.ExpireAt) {
+			return model.VerificationExpiredErr
 		}
 		// verification has done
 		if verification.Progress != model.VerificationWaiting {
 			return fmt.Errorf("pass already")
 		}
-		verification.Progress = model.VerificationPass
+		verification.Progress = model.VerificationDone
 		b, err := jsoniter.Marshal(verification)
 		if err != nil {
 			log.Warn("%v", err)
@@ -81,5 +85,37 @@ func Verify(verificationCode string, chatIdentifier string) error {
 		}
 
 		return bkt.Put([]byte(verificationCode), b)
+	})
+}
+
+// Verified check if given verificationCode and chatIdentifier verification has passed
+func Verified(verificationCode string, chatIdentifier string) error {
+	return db.DB().Update(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
+		if err != nil {
+			return err
+		}
+		val := bkt.Get([]byte(verificationCode))
+		// verification code was not found
+		if val == nil {
+			return fmt.Errorf("invalid verification code")
+		}
+		var verification model.Verification
+		if err := jsoniter.Unmarshal(val, &verification); err != nil {
+			log.Warn("%v", err)
+			return fmt.Errorf("internal error")
+		}
+		// verification code is not for this chat
+		if verification.ChatIdentifier != chatIdentifier {
+			return fmt.Errorf("invalid verification code")
+		}
+		if time.Now().After(verification.ExpireAt) {
+			return model.VerificationExpiredErr
+		}
+		// verification has done
+		if verification.Progress < model.VerificationDone {
+			return fmt.Errorf("invalid verification code")
+		}
+		return nil
 	})
 }
