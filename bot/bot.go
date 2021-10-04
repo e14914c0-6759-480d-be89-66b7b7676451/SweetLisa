@@ -1,14 +1,24 @@
 package bot
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strings"
 	"time"
 )
 
 type Bot struct {
-	tb *tb.Bot
+	Bot *tb.Bot
+}
+
+type CommandHandler func(b *Bot, m *tb.Message, params []string)
+
+var GlobalCommandMapper = make(map[string]CommandHandler)
+
+func RegisterCommands(command string, f CommandHandler) {
+	GlobalCommandMapper[command] = f
 }
 
 func New(token string, poller *tb.LongPoller) (*Bot, error) {
@@ -23,16 +33,28 @@ func New(token string, poller *tb.LongPoller) (*Bot, error) {
 		return nil, err
 	}
 	bot := &Bot{
-		tb: b,
+		Bot: b,
 	}
-	b.Handle("/sweetlisa", bot.SweetLisa)
-	b.Handle("/verify", bot.Verify)
+	b.Handle(tb.OnChannelPost, func(m *tb.Message) {
+		if !strings.HasPrefix(m.Text, "/") || len(m.Text) <= 1 {
+			return
+		}
+		text := strings.TrimPrefix(m.Text, "/")
+		fields := strings.Fields(text)
+		if handler, ok := GlobalCommandMapper[fields[0]]; ok {
+			if !m.FromChannel() || m.Signature != "" {
+				_, _ = b.Reply(m, "Please use me from an anonymous channel.")
+				return
+			}
+			handler(bot, m, fields[1:])
+		}
+	})
 	b.Start()
 	return bot, nil
 }
 
 func (b *Bot) ChatIdentifier(c *tb.Chat) string {
 	strChatID := fmt.Sprintf("%v", c.ID)
-	hash := common.Bytes2Sha256([]byte(strChatID), []byte(b.tb.Token))
-	return string(hash[:])
+	hash := common.Bytes2Sha1([]byte(strChatID), []byte(b.Bot.Token))
+	return base64.URLEncoding.EncodeToString(hash[:])
 }

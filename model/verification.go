@@ -10,7 +10,6 @@ const BucketVerification = "verification"
 var VerificationExpiredErr = fmt.Errorf("verification expired")
 
 type Verification struct {
-	Code           string
 	ExpireAt       time.Time
 	ChatIdentifier string
 	Progress       VerificationProgress

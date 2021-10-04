@@ -12,7 +12,6 @@ import (
 // SaveTicket saves the given ticket to the database and sets the expiration time to the next month
 func SaveTicket(ticket string, chatIdentifier string) (tic model.Ticket, err error) {
 	tic = model.Ticket{
-		Ticket:         ticket,
 		ChatIdentifier: chatIdentifier,
 		ExpireAt:       time.Now().AddDate(0, 1, 0),
 	}

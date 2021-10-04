@@ -8,7 +8,6 @@ const (
 )
 
 type Ticket struct {
-	Ticket         string
 	ChatIdentifier string
 	ExpireAt       time.Time
 }

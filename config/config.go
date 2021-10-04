@@ -1,9 +1,11 @@
 package config
 
 import (
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/stevenroose/gonfig"
 	log2 "log"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -13,7 +15,7 @@ type Params struct {
 	Address             string  `id:"address" short:"a" default:"0.0.0.0:14914" desc:"Listening address"`
 	Config              string  `id:"config" short:"c" default:"/etc/sweetlisa" desc:"SweetLisa configuration directory"`
 	BotToken            string  `id:"bot-token"`
-	Host                string  `id:"host"`
+	Host                string  `id:"host" default:"example.org"`
 	AccessVoteThreshold float64 `id:"access-vote" desc:"the number or ratio to vote before a new server access to the system. ratio if lower than 1, and number if greater or equal to 1"`
 	LogLevel            string  `id:"log-level" default:"info" desc:"Optional values: trace, debug, info, warn or error"`
 	LogFile             string  `id:"log-file" desc:"The path of log file"`
@@ -40,6 +42,14 @@ func initFunc() {
 		filepath.Dir(params.Config),
 		strings.ReplaceAll(filepath.Base(params.Config), ".", "_"),
 	)
+	// expand '~' with user home
+	params.Config, err = common.HomeExpand(params.Config)
+	if err != nil {
+		log2.Fatal(err)
+	}
+	if err := os.MkdirAll(params.Config, 0700); err != nil {
+		log2.Fatal(err)
+	}
 	logWay := "console"
 	if params.LogFile != "" {
 		logWay = "file"

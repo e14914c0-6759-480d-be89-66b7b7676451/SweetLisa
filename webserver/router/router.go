@@ -9,7 +9,7 @@ import (
 func Run() error {
 	engine := gin.New()
 	engine.Use(gin.Recovery())
-	api := engine.Group(":ChatIdentifier/api")
+	api := engine.Group("/api/:ChatIdentifier")
 	{
 		api.GET("ticket", controller.GetTicket)
 		api.GET("verification", controller.GetVerification)

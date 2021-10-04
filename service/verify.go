@@ -32,7 +32,6 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 			}
 		}
 		verification := model.Verification{
-			Code:           verificationCode,
 			ExpireAt:       time.Now().Add(1 * time.Minute),
 			ChatIdentifier: chatIdentifier,
 			Progress:       model.VerificationWaiting,

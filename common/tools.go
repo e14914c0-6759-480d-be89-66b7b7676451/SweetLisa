@@ -1,11 +1,11 @@
 package common
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/gob"
+	"crypto/sha1"
 	"fmt"
 	"net/url"
+	"os/user"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -157,30 +157,23 @@ func BytesCopy(b []byte) []byte {
 	return a
 }
 
-func ToBytes(val interface{}) (b []byte, err error) {
-	buf := new(bytes.Buffer)
-	if err = gob.NewEncoder(buf).Encode(val); err != nil {
-		return nil, err
-	}
-	return BytesCopy(buf.Bytes()), nil
-}
-
-func Bytes2Sha256(b []byte, salt []byte) [32]byte {
-	h := sha256.New()
+func Bytes2Sha1(b []byte, salt []byte) []byte {
+	h := sha1.New()
 	h.Write(b)
 	if len(salt) > 0 {
 		h.Write(salt)
 	}
-	var hash [32]byte
-	copy(hash[:], h.Sum(nil))
-	return hash
+	return h.Sum(nil)
 }
 
-func ToSha256(val interface{}) (hash [32]byte, err error) {
-	b, err := ToBytes(val)
-	if err != nil {
-		return hash, err
+func HomeExpand(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") {
+		return path, nil
 	}
-	hash = Bytes2Sha256(b, nil)
-	return hash, nil
+
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(usr.HomeDir, path[1:]), nil
 }
