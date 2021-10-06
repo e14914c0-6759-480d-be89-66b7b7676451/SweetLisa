@@ -15,7 +15,7 @@ func Verify(b *bot.Bot, m *tb.Message, params []string) {
 	chatIdentifier := b.ChatIdentifier(m.Chat)
 	log.Warn("text", m.Text)
 	// m.Text should be a random string for verification
-	if err := service.VerificationDone(m.Text, chatIdentifier); err != nil {
+	if err := service.VerificationToPassed(m.Text, chatIdentifier); err != nil {
 		b.Bot.Reply(m, err.Error(), tb.Silent, tb.NoPreview)
 	} else {
 		b.Bot.Reply(m, "pass", tb.Silent, tb.NoPreview)

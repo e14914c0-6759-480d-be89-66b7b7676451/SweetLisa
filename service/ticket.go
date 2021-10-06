@@ -10,10 +10,14 @@ import (
 )
 
 // SaveTicket saves the given ticket to the database and sets the expiration time to the next month
-func SaveTicket(ticket string, chatIdentifier string) (tic model.Ticket, err error) {
+func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic model.Ticket, err error) {
 	tic = model.Ticket{
+		Ticket:         ticket,
 		ChatIdentifier: chatIdentifier,
-		ExpireAt:       time.Now().AddDate(0, 1, 0),
+		Type:           typ,
+	}
+	if typ == model.TicketTypeUser {
+		tic.ExpireAt = time.Now().AddDate(0, 1, 0)
 	}
 	return tic, db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketTicket))
@@ -28,6 +32,7 @@ func SaveTicket(ticket string, chatIdentifier string) (tic model.Ticket, err err
 	})
 }
 
+// GetValidTicketObj returns ticket object if given ticket is valid
 func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
 	err = db.DB().View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))

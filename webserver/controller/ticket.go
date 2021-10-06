@@ -11,9 +11,17 @@ import (
 
 // GetTicket will add a ticket to database or renew a ticket existing
 func GetTicket(ctx *gin.Context) {
-	verificationCode := ctx.Query("Verification")
+	var query struct {
+		Type             int
+		VerificationCode string
+	}
+	if err := ctx.ShouldBindQuery(&query); err != nil ||
+		!model.TicketType(query.Type).IsValid() {
+		common.ResponseBadRequestError(ctx)
+		return
+	}
 	chatIdentifier := ctx.GetString("ChatIdentifier")
-	if err := service.Verified(verificationCode, chatIdentifier); err != nil {
+	if err := service.Verified(query.VerificationCode, chatIdentifier); err != nil {
 		common.ResponseError(ctx, err)
 		return
 	}
@@ -22,7 +30,7 @@ func GetTicket(ctx *gin.Context) {
 		common.ResponseError(ctx, fmt.Errorf("%v: try again please", err))
 		return
 	}
-	tic, err := service.SaveTicket(ticket, chatIdentifier)
+	tic, err := service.SaveTicket(ticket, model.TicketType(query.Type), chatIdentifier)
 	if err != nil {
 		common.ResponseError(ctx, err)
 		return

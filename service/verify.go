@@ -32,6 +32,7 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 			}
 		}
 		verification := model.Verification{
+			Code:           verificationCode,
 			ExpireAt:       time.Now().Add(1 * time.Minute),
 			ChatIdentifier: chatIdentifier,
 			Progress:       model.VerificationWaiting,
@@ -48,8 +49,8 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 	return verificationCode, nil
 }
 
-// VerificationDone verifies if given verificationCode and chatIdentifier can pass the verification
-func VerificationDone(verificationCode string, chatIdentifier string) error {
+// VerificationToPassed verifies if given verificationCode and chatIdentifier can pass the verification
+func VerificationToPassed(verificationCode string, chatIdentifier string) error {
 	return db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
