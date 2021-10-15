@@ -16,7 +16,6 @@ type Params struct {
 	Config              string  `id:"config" short:"c" default:"/etc/sweetlisa" desc:"SweetLisa configuration directory"`
 	BotToken            string  `id:"bot-token"`
 	Host                string  `id:"host" default:"example.org"`
-	AccessVoteThreshold float64 `id:"access-vote" desc:"the number or ratio to vote before a new server access to the system. ratio if lower than 1, and number if greater or equal to 1"`
 	LogLevel            string  `id:"log-level" default:"info" desc:"Optional values: trace, debug, info, warn or error"`
 	LogFile             string  `id:"log-file" desc:"The path of log file"`
 	LogMaxDays          int64   `id:"log-max-days" default:"3" desc:"Maximum number of days to keep log files"`

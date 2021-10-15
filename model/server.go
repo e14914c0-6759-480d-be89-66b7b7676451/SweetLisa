@@ -8,6 +8,7 @@ type ProxyProtocol int
 
 const (
 	VMessTCP ProxyProtocol = iota
+	Shadowsocks
 )
 
 type Server struct {
