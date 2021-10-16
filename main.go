@@ -5,6 +5,7 @@ import (
 	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/bot/commandHandler"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
+	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/manager/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/webserver/router"
 )
 

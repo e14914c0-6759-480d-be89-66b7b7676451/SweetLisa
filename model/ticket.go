@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
+	jsoniter "github.com/json-iterator/go"
+	"time"
+)
 
 const (
 	BucketTicket = "ticket"
@@ -27,12 +31,17 @@ type Ticket struct {
 }
 
 func init() {
-	go ExpireCleanBackground(BucketVerification, 1*time.Hour, func(v interface{}, now time.Time) (expired bool) {
-		t := v.(Ticket)
-		if t.ExpireAt.IsZero() {
+	go ExpireCleanBackground(BucketVerification, 1*time.Hour, func(b []byte, now time.Time) (expired bool) {
+		var ticket Ticket
+		err := jsoniter.Unmarshal(b, &ticket)
+		if err != nil {
+			log.Warn("clean ticket: %v", err)
+			return false
+		}
+		if ticket.ExpireAt.IsZero() {
 			// never expire if no expiration time was given
 			return false
 		}
-		return now.After(t.ExpireAt)
+		return now.After(ticket.ExpireAt)
 	})()
 }

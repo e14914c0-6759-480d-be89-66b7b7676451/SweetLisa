@@ -14,5 +14,9 @@ func Run() error {
 		api.GET("ticket", controller.GetTicket)
 		api.GET("verification", controller.GetVerification)
 	}
+	server:= api.Group("server")
+	{
+		server.POST("register", controller.PostRegister)
+	}
 	return engine.Run(config.GetConfig().Address)
 }

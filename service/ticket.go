@@ -16,6 +16,7 @@ func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic
 		ChatIdentifier: chatIdentifier,
 		Type:           typ,
 	}
+	// server ticket never expire
 	if typ == model.TicketTypeUser {
 		tic.ExpireAt = time.Now().AddDate(0, 1, 0)
 	}
@@ -47,7 +48,8 @@ func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
 		if err := jsoniter.Unmarshal(b, &t); err != nil {
 			return err
 		}
-		if time.Now().After(t.ExpireAt) {
+		// zero means never expire
+		if !t.ExpireAt.IsZero() && time.Now().After(t.ExpireAt) {
 			return fmt.Errorf("invalid ticket: expired")
 		}
 		tic = t

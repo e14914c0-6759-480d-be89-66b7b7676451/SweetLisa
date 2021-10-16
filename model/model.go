@@ -4,15 +4,14 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
-	jsoniter "github.com/json-iterator/go"
+	"sync"
 	"time"
 )
 
-func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(v interface{}, now time.Time) (expired bool)) func() {
+func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(b []byte, now time.Time) (expired bool)) func() {
 	return func() {
 		tick := time.Tick(cleanInterval)
-		for range tick {
-			now := time.Now()
+		for now := range tick {
 			if err := db.DB().Update(func(tx *bolt.Tx) error {
 				bkt, err := tx.CreateBucketIfNotExists([]byte(bucket))
 				if err != nil {
@@ -20,11 +19,7 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(v 
 				}
 				var listClean [][]byte
 				if err = bkt.ForEach(func(k, b []byte) error {
-					var v interface{}
-					if err := jsoniter.Unmarshal(b, &v); err != nil {
-						return err
-					}
-					if f(v, now) {
+					if f(b, now) {
 						listClean = append(listClean, k)
 					}
 					return nil
@@ -40,6 +35,55 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(v 
 			}); err != nil {
 				log.Warn("Clean bucket %v: %v", bucket, err)
 			}
+		}
+	}
+}
+
+func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (updated []byte)) func() {
+	type toUpdate struct {
+		key []byte
+		val []byte
+	}
+	return func() {
+		tick := time.Tick(interval)
+		for now := range tick {
+			go func(now time.Time) {
+				if err := db.DB().Update(func(tx *bolt.Tx) error {
+					bkt, err := tx.CreateBucketIfNotExists([]byte(bucket))
+					if err != nil {
+						return err
+					}
+					var mu sync.Mutex
+					var listUpdate []toUpdate
+					var wg sync.WaitGroup
+					if err = bkt.ForEach(func(k, b []byte) error {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							if updated := f(b, now); updated != nil {
+								mu.Lock()
+								listUpdate = append(listUpdate, toUpdate{
+									key: k,
+									val: updated,
+								})
+								mu.Unlock()
+							}
+						}()
+						return nil
+					}); err != nil {
+						return err
+					}
+					wg.Wait()
+					for _, k := range listUpdate {
+						if err = bkt.Put(k.key, k.val); err != nil {
+							return err
+						}
+					}
+					return nil
+				}); err != nil {
+					log.Warn("Update bucket %v: %v", bucket, err)
+				}
+			}(now)
 		}
 	}
 }
