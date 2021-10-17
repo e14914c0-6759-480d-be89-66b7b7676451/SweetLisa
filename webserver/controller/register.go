@@ -46,7 +46,5 @@ func PostRegister(ctx *gin.Context) {
 		return
 	}
 	keys := service.GetKeys(chatIdentifier, req)
-	common.ResponseSuccess(ctx, gin.H{
-		"Keys": keys,
-	})
+	common.ResponseSuccess(ctx, keys)
 }

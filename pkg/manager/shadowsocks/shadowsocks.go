@@ -32,8 +32,7 @@ func New(arg manager.ManageArgument) manager.Manager {
 	}
 }
 
-// GetTurn executes one request and get one response like HTTP
-func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.SocksAddr, body []byte) (resp []byte, err error) {
+func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte) (resp []byte, err error) {
 	var dialer net.Dialer
 	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(s.arg.Host, s.arg.Port))
 	if err != nil {
@@ -45,21 +44,11 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.SocksAddr, body []byt
 		<-ctx.Done()
 		crw.SetDeadline(time.Now())
 	}()
-
-	go func() {
-		crw.Write(addr.Bytes())
-		crw.Write(body)
-	}()
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(crw)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return crw.GetTurn(addr, body)
 }
 
 func (s *Shadowsocks) Ping(ctx context.Context) (err error) {
-	resp, err := s.GetTurn(ctx, ss.SocksAddr{Type: ss.SocksTypeMsg, Cmd: ss.CmdTypePing}, []byte("ping"))
+	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdPing}, []byte("ping"))
 	if err != nil {
 		return err
 	}
@@ -74,7 +63,7 @@ func (s *Shadowsocks) SyncKeys(ctx context.Context, keys []model.Argument) (err 
 	if err != nil {
 		return err
 	}
-	resp, err := s.GetTurn(ctx, ss.SocksAddr{Type: ss.SocksTypeMsg, Cmd: ss.CmdTypePing}, body)
+	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdSyncKeys}, body)
 	if err != nil {
 		return err
 	}
