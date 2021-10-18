@@ -12,7 +12,7 @@ import (
 // PostRegister registers a server
 func PostRegister(ctx *gin.Context) {
 	var req model.Server
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindJSON(&req); err != nil || ctx.Param("Ticket") != req.Ticket {
 		common.ResponseBadRequestError(ctx)
 		return
 	}
@@ -48,6 +48,5 @@ func PostRegister(ctx *gin.Context) {
 	}
 	log.Info("Received a register request from %v: Chat: %v, Name: %v", ctx.ClientIP(), req.Name, chatIdentifier)
 	keys := service.GetKeysByServer(req)
-	log.Trace("keys: %v", keys)
 	common.ResponseSuccess(ctx, keys)
 }

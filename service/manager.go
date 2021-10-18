@@ -3,11 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/boltdb/bolt"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
-	jsoniter "github.com/json-iterator/go"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,37 +21,10 @@ func SyncKeysByServer(ctx context.Context, server model.Server) (err error) {
 }
 
 func SyncKeysByChatIdentifier(ctx context.Context, chatIdentifier string) (err error) {
-	var servers []model.Server
-	db.DB().View(func(tx *bolt.Tx) error {
-		bkt := tx.Bucket([]byte(model.BucketTicket))
-		if bkt == nil {
-			return nil
-		}
-		serverBkt := tx.Bucket([]byte(model.BucketServer))
-		if serverBkt == nil {
-			return nil
-		}
-		// get servers
-		bkt.ForEach(func(k, v []byte) error {
-			var tic model.Ticket
-			if err := jsoniter.Unmarshal(v, &tic); err != nil {
-				return nil
-			}
-			if tic.ChatIdentifier != chatIdentifier ||
-				common.Expired(tic.ExpireAt) ||
-				tic.Type != model.TicketTypeServer {
-				return nil
-			}
-			var svr model.Server
-			bServer := serverBkt.Get([]byte(tic.Ticket))
-			if err := jsoniter.Unmarshal(bServer, &svr); err != nil {
-				return nil
-			}
-			servers = append(servers, svr)
-			return nil
-		})
-		return nil
-	})
+	servers, err := GetServersByChatIdentifier(chatIdentifier)
+	if err != nil {
+		return err
+	}
 	var wg sync.WaitGroup
 	var errs []string
 	var mu sync.Mutex
