@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/boltdb/bolt v1.3.1
-	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211016031441-3a50d1bea71d
+	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211018083011-6dd6040c8aa2
 	github.com/gin-gonic/gin v1.7.4
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
@@ -20,7 +20,6 @@ require (
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/protobuf v1.3.3 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
@@ -34,5 +33,3 @@ require (
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
-
-replace github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn => ../BitterJohn
