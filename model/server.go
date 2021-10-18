@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	BucketServer = "server"
+	BucketServer    = "server"
+	MaxFailureCount = 10
 )
 
 type ProxyProtocol string

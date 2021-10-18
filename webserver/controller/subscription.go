@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
@@ -32,7 +34,19 @@ func GetSubscription(c *gin.Context) {
 	var sip008 = model.SIP008{
 		Version: 1,
 	}
+	sip008.Servers = append(sip008.Servers, model.SIP008Server{
+		Id:         "00000000-0000-0000-0000-000000000000",
+		Remarks:    fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02")),
+		Server:     config.GetConfig().Host,
+		ServerPort: 1024,
+		Password:   "0",
+		Method:     "chacha20-ietf-poly1305",
+	})
 	for _, svr := range servers {
+		if svr.FailureCount >= model.MaxFailureCount {
+			// do not return lost-alive server
+			continue
+		}
 		arg := svr.GetUserArgument(ticket)
 		sip008.Servers = append(sip008.Servers, model.SIP008Server{
 			Id:         common.StringToUUID5(svr.Ticket),

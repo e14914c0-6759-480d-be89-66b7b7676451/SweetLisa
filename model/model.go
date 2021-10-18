@@ -44,7 +44,7 @@ func GoBackgrounds() {
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return false
 		}
-		if server.FailureCount >= 10 && time.Since(server.LastSeen).Hours() > 24*35 {
+		if server.FailureCount >= MaxFailureCount && time.Since(server.LastSeen).Hours() > 24*35 {
 			// remove corresponding ticket
 			if err := db.DB().Update(func(tx *bolt.Tx) error {
 				bkt := tx.Bucket([]byte(BucketTicket))
@@ -73,7 +73,7 @@ func GoBackgrounds() {
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return nil
 		}
-		if server.FailureCount >= 10 {
+		if server.FailureCount >= MaxFailureCount {
 			// stop the ping and wait for the register
 			return nil
 		}
