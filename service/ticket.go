@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	jsoniter "github.com/json-iterator/go"
@@ -19,6 +20,8 @@ func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic
 	// server ticket never expire
 	if typ == model.TicketTypeUser {
 		tic.ExpireAt = time.Now().AddDate(0, 1, 0)
+	} else {
+		tic.ExpireAt = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 	}
 	return tic, db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketTicket))
@@ -49,7 +52,7 @@ func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
 			return err
 		}
 		// zero means never expire
-		if !t.ExpireAt.IsZero() && time.Now().After(t.ExpireAt) {
+		if common.Expired(t.ExpireAt) {
 			return fmt.Errorf("invalid ticket: expired")
 		}
 		tic = t

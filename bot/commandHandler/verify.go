@@ -13,11 +13,16 @@ func init() {
 
 func Verify(b *bot.Bot, m *tb.Message, params []string) {
 	chatIdentifier := b.ChatIdentifier(m.Chat)
-	log.Warn("text", m.Text)
+	if len(params) < 1 {
+		b.Bot.Reply(m, "invalid verify params", tb.Silent, tb.NoPreview)
+		return
+	}
+
+	log.Info("Verify: chatIdentifier: %v, text: %v", chatIdentifier, params[0])
 	// m.Text should be a random string for verification
-	if err := service.VerificationToPassed(m.Text, chatIdentifier); err != nil {
+	if err := service.Verify(params[0], chatIdentifier); err != nil {
 		b.Bot.Reply(m, err.Error(), tb.Silent, tb.NoPreview)
 	} else {
-		b.Bot.Reply(m, "pass", tb.Silent, tb.NoPreview)
+		b.Bot.Reply(m, "Passed. This code is valid within 2 minutes.", tb.Silent, tb.NoPreview)
 	}
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
@@ -22,7 +23,7 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 			return err
 		}
 		for {
-			id, err := gonanoid.New()
+			id, err := gonanoid.Generate(common.Alphabet, 21)
 			if err != nil {
 				return err
 			}
@@ -49,8 +50,8 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 	return verificationCode, nil
 }
 
-// VerificationToPassed verifies if given verificationCode and chatIdentifier can pass the verification
-func VerificationToPassed(verificationCode string, chatIdentifier string) error {
+// Verify verifies if given verificationCode and chatIdentifier can pass the verification
+func Verify(verificationCode string, chatIdentifier string) error {
 	return db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
@@ -70,7 +71,7 @@ func VerificationToPassed(verificationCode string, chatIdentifier string) error 
 		if verification.ChatIdentifier != chatIdentifier {
 			return fmt.Errorf("invalid verification code")
 		}
-		if time.Now().After(verification.ExpireAt) {
+		if common.Expired(verification.ExpireAt) {
 			return model.VerificationExpiredErr
 		}
 		// verification has done
@@ -78,6 +79,7 @@ func VerificationToPassed(verificationCode string, chatIdentifier string) error 
 			return fmt.Errorf("pass already")
 		}
 		verification.Progress = model.VerificationDone
+		verification.ExpireAt = time.Now().Add(2 * time.Minute)
 		b, err := jsoniter.Marshal(verification)
 		if err != nil {
 			log.Warn("%v", err)
@@ -109,7 +111,7 @@ func Verified(verificationCode string, chatIdentifier string) error {
 		if verification.ChatIdentifier != chatIdentifier {
 			return fmt.Errorf("invalid verification code")
 		}
-		if time.Now().After(verification.ExpireAt) {
+		if common.Expired(verification.ExpireAt) {
 			return model.VerificationExpiredErr
 		}
 		// verification has done

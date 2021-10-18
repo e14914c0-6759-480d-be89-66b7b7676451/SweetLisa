@@ -4,26 +4,41 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	bitterJohnConfig "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/config"
 	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/shadowsocks"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/manager"
 	jsoniter "github.com/json-iterator/go"
 	"net"
 	"time"
 )
 
 func init() {
-	manager.Register("shadowsocks", New)
+	model.Register("shadowsocks", New)
+
+	// init the log of bitterJohnConfig with sweetLisa's config
+	conf := config.GetConfig()
+	var logFile string
+	if conf.LogFile != "" {
+		logFile += ".bitterJohn"
+	}
+	bitterJohnConfig.SetConfig(bitterJohnConfig.Params{
+		LogFile:             logFile,
+		LogLevel:            conf.LogLevel,
+		LogDisableColor:     conf.LogDisableColor,
+		LogDisableTimestamp: conf.LogDisableTimestamp,
+	})
+	bitterJohnConfig.GetConfig()
 }
 
 type Shadowsocks struct {
-	arg        manager.ManageArgument
+	arg        model.ManageArgument
 	masterKey  []byte
 	cipherConf ss.CipherConf
 }
 
-func New(arg manager.ManageArgument) manager.Manager {
-	cipherConf := ss.CiphersConf[string(arg.Argument.Protocol)]
+func New(arg model.ManageArgument) model.Manager {
+	cipherConf := ss.CiphersConf[arg.Argument.Method]
 	masterKey := ss.EVPBytesToKey(arg.Argument.Password, cipherConf.KeyLen)
 	return &Shadowsocks{
 		arg:        arg,
@@ -39,7 +54,10 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 		return nil, err
 	}
 	defer conn.Close()
-	crw := ss.NewSSConn(conn, s.cipherConf, s.masterKey)
+	crw, err := ss.NewSSConn(conn, s.cipherConf, s.masterKey)
+	if err != nil {
+		return nil, err
+	}
 	go func() {
 		<-ctx.Done()
 		crw.SetDeadline(time.Now())

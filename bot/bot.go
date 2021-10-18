@@ -1,9 +1,9 @@
 package bot
 
 import (
-	"encoding/base64"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"strings"
 	"time"
@@ -55,6 +55,27 @@ func New(token string, poller *tb.LongPoller) (*Bot, error) {
 
 func (b *Bot) ChatIdentifier(c *tb.Chat) string {
 	strChatID := fmt.Sprintf("%v", c.ID)
-	hash := common.Bytes2Sha1([]byte(strChatID), []byte(b.Bot.Token))
-	return base64.URLEncoding.EncodeToString(hash[:])
+	return StringToUUID5(strChatID)
+}
+
+// StringToUUID5 is from https://github.com/XTLS/Xray-core/issues/158
+func StringToUUID5(str string) string {
+	var Nil [16]byte
+	h := sha1.New()
+	h.Write(Nil[:])
+	h.Write([]byte(str))
+	u := h.Sum(nil)[:16]
+	u[6] = (u[6] & 0x0f) | (5 << 4)
+	u[8] = u[8]&(0xff>>2) | (0x02 << 6)
+	buf := make([]byte, 36)
+	hex.Encode(buf[0:8], u[0:4])
+	buf[8] = '-'
+	hex.Encode(buf[9:13], u[4:6])
+	buf[13] = '-'
+	hex.Encode(buf[14:18], u[6:8])
+	buf[18] = '-'
+	hex.Encode(buf[19:23], u[8:10])
+	buf[23] = '-'
+	hex.Encode(buf[24:], u[10:])
+	return string(buf)
 }

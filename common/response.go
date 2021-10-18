@@ -25,24 +25,24 @@ func Response(ctx *gin.Context, code Code, data interface{}) (status int, body g
 		case string:
 			data = data.(string)
 			body = gin.H{
-				"code":    code,
-				"message": data,
-				"data":    nil,
+				"Code":    code,
+				"Message": data,
+				"Data":    nil,
 			}
 		default:
 			body = gin.H{
-				"code":    code,
-				"message": nil,
-				"data":    data,
+				"Code":    code,
+				"Message": nil,
+				"Data":    data,
 			}
 		}
 		ctx.JSON(status, body)
 		return status, body
 	}
 	body = gin.H{
-		"code":    code,
-		"message": nil,
-		"data":    data,
+		"Code":    code,
+		"Message": nil,
+		"Data":    data,
 	}
 	ctx.JSON(status, body)
 	return status, body

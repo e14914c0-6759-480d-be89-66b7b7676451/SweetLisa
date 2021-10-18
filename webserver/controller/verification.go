@@ -7,7 +7,7 @@ import (
 )
 
 func GetVerification(ctx *gin.Context) {
-	code, err := service.NewVerification(ctx.GetString("ChatIdentifier"))
+	code, err := service.NewVerification(ctx.Param("ChatIdentifier"))
 	if err != nil {
 		common.ResponseError(ctx, err)
 		return

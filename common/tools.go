@@ -8,7 +8,10 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 )
+
+const Alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789"
 
 var (
 	NotSameTypeErr    = fmt.Errorf("cannot fill empty: the two value have different type")
@@ -176,4 +179,11 @@ func HomeExpand(path string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(usr.HomeDir, path[1:]), nil
+}
+
+func Expired(expireAt time.Time) bool {
+	if expireAt.IsZero(){
+		return false
+	}
+	return expireAt.Before(time.Now())
 }

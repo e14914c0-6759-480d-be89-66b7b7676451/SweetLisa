@@ -1,21 +1,20 @@
-package manager
+package model
 
 import (
 	"context"
 	"fmt"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"strconv"
 )
 
 type ManageArgument struct {
 	Host string
 	Port string
-	model.Argument
+	Argument
 }
 
 type Manager interface {
 	Ping(ctx context.Context) (err error)
-	SyncKeys(ctx context.Context, keys []model.Argument) (err error)
+	SyncKeys(ctx context.Context, keys []Argument) (err error)
 }
 
 type Creator func(arg ManageArgument) Manager
