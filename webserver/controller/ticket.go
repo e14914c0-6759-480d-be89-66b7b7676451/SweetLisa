@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// GetTicket will add a ticket to database or renew a ticket existing
+// GetTicket will add a ticket to database
 func GetTicket(c *gin.Context) {
 	var query struct {
 		Type             int
@@ -48,4 +48,46 @@ func GetTicket(c *gin.Context) {
 	common.ResponseSuccess(c, gin.H{
 		"Ticket": tic,
 	})
+}
+
+// PostRenew will renew a ticket existing
+func PostRenew(c *gin.Context) {
+	var req struct {
+		VerificationCode string
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ResponseBadRequestError(c)
+		return
+	}
+	chatIdentifier := c.Param("ChatIdentifier")
+	if err := service.Verified(req.VerificationCode, chatIdentifier); err != nil {
+		common.ResponseError(c, err)
+		return
+	}
+	ticket := c.Param("Ticket")
+	// verify the ticket
+	ticObj, err := service.GetValidTicketObj(ticket)
+	if err != nil {
+		common.ResponseError(c, err)
+		return
+	}
+	if ticObj.Type != model.TicketTypeUser || ticObj.ChatIdentifier != chatIdentifier {
+		common.ResponseBadRequestError(c)
+		return
+	}
+	renewedTic, err := service.SaveTicket(ticket, ticObj.Type, chatIdentifier)
+	if err != nil {
+		common.ResponseError(c, err)
+		return
+	}
+	if common.Expired(ticObj.ExpireAt) {
+		// SyncKeysByChatIdentifier
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+			common.ResponseError(c, err)
+			return
+		}
+	}
+	common.ResponseSuccess(c, renewedTic)
 }

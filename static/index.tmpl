@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Lisa</title>
+    <link href="//cdn.muicss.com/mui-0.10.3/css/mui.min.css" rel="stylesheet" type="text/css"/>
+    <script src="//cdn.muicss.com/mui-0.10.3/js/mui.min.js"></script>
+    <style>
+        #wrapper {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-image: url(/img/texture.png);
+            background-color: rgb(21, 85, 154);
+            text-align: center;
+        }
+
+        body {
+            color: white;
+        }
+
+        article {
+            padding-top: 30vh;
+        }
+
+        .easy-selectable {
+            cursor: pointer !important;
+        }
+
+        .modal {
+            padding: 3rem;
+        }
+    </style>
+</head>
+<body>
+<main id="wrapper">
+    <article class="mui-container">
+        <h1>Keep Anonymous</h1>
+        <h2>{{- .ChatIdentifier -}}</h2>
+        <button class="mui-btn mui-btn--primary mui-btn--raised" onclick="activateModal('Register')">Register</button>
+        <button class="mui-btn mui-btn--primary mui-btn--raised" onclick="activateModal('Renew')">Renew</button>
+    </article>
+</main>
+<script>
+    const ChatIdentifier = {{- .ChatIdentifier -}};
+
+    async function activateModal(action) {
+        let VerificationCode = 'loading...';
+        await fetch(`/api/${ChatIdentifier}/verification`)
+            .then(resp => resp.json())
+            .then(resp => {
+                if (resp.Code !== "SUCCESS") {
+                    alert(resp.Message);
+                    return;
+                }
+                VerificationCode = resp.Data.VerificationCode;
+            })
+
+        let modalEl = document.createElement('div');
+        modalEl.style.width = '60%';
+        modalEl.style.minWidth = '300px';
+        modalEl.style.maxWidth = '500px';
+        modalEl.style.height = 'min-content';
+        modalEl.style.margin = 'auto auto';
+        modalEl.style.position = 'absolute';
+        modalEl.style.left = '0';
+        modalEl.style.right = '0';
+        modalEl.style.top = '0';
+        modalEl.style.bottom = '0';
+        modalEl.style.backgroundColor = '#fff';
+        modalEl.style.color = '#000';
+        modalEl.innerHTML = `
+            <div class="mui-container modal">
+                <div class="mui-textfield mui-textfield--float-label">
+                    <input class="easy-selectable" type="text" value="/verify ${VerificationCode}" readonly="readonly">
+                    <label>Verification Code</label>
+                </div>
+                ${action === 'Renew' ? `
+                <div class="mui-textfield mui-textfield--float-label">
+                    <input id="ticket" type="text" value="">
+                    <label>Ticket</label>
+                </div>
+                ` : ''}
+                <div class="mui-radio">
+                    <label>
+                        <input type="radio"
+                               name="ticketType"
+                               id="ticketTypeUser"
+                               value="user"
+                               checked>
+                        User
+                    </label>
+                </div>
+                ${action === 'Register' ? `
+                <div class="mui-radio">
+                    <label>
+                        <input type="radio"
+                               name="ticketType"
+                               id="ticketTypeServer"
+                               value="server">
+                        Server
+                    </label>
+                </div>
+                ` : ''}
+                <button class="mui-btn mui-btn--primary mui-btn--raised submit">${action}</button>
+            </div>
+        `
+        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
+        modalEl.querySelector('button.submit').addEventListener('click', e => {
+            const TypeMapper = {'user': 0, 'server': 1};
+            let Type = TypeMapper[modalEl.querySelector('input[name="ticketType"]:checked').value];
+            if (action === 'Register') {
+                fetch(`/api/${ChatIdentifier}/ticket?VerificationCode=${VerificationCode}&Type=${Type}`, {
+                    method: 'GET'
+                }).then((resp) => {
+                    return resp.json();
+                }).then((resp) => {
+                    if (resp.Code !== "SUCCESS") {
+                        alert(resp.Message);
+                        return;
+                    }
+                    let modalEl = document.createElement('div');
+                    modalEl.style.width = '60%';
+                    modalEl.style.minWidth = '300px';
+                    modalEl.style.maxWidth = '500px';
+                    modalEl.style.height = 'min-content';
+                    modalEl.style.margin = 'auto auto';
+                    modalEl.style.position = 'absolute';
+                    modalEl.style.left = '0';
+                    modalEl.style.right = '0';
+                    modalEl.style.top = '0';
+                    modalEl.style.bottom = '0';
+                    modalEl.style.backgroundColor = '#fff';
+                    modalEl.style.color = '#000';
+                    modalEl.innerHTML = `
+                    <div class="mui-container modal">
+                        <div class="mui-textfield mui-textfield--float-label">
+                            <input class="easy-selectable" type="text" value="${resp.Data.Ticket.Ticket}" readonly="readonly">
+                            <label>Ticket</label>
+                        </div>
+                        <div class="mui-textfield mui-textfield--float-label">
+                            <input class="easy-selectable" type="text" value="${location.origin}/api/${ChatIdentifier}/${resp.Data.Ticket.Ticket}/sub" readonly="readonly">
+                            <label>Subscription Link</label>
+                        </div>
+                    </div>
+                    `
+                    Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
+                    // show modal
+                    mui.overlay('on', modalEl);
+                })
+            } else if (action === 'Renew') {
+                console.log("?")
+                let Ticket = modalEl.querySelector('#ticket').value;
+                fetch(`/api/${ChatIdentifier}/${Ticket}/renew`, {
+                    method: 'POST',
+                    mode: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        VerificationCode
+                    })
+                }).then((resp) => {
+                    return resp.json();
+                }).then((resp) => {
+                    if (resp.Code !== "SUCCESS") {
+                        alert(resp.Message);
+                        return;
+                    }
+                    alert(`Succeeded. Your ticket will expire at: ${new Date(resp.Data.ExpireAt).toLocaleString()}`);
+                })
+            } else {
+                console.error("unexpected action:", action);
+            }
+        });
+        // show modal
+        mui.overlay('on', modalEl);
+    }
+</script>
+</body>
+</html>

@@ -36,7 +36,7 @@ func GetSubscription(c *gin.Context) {
 	}
 	sip008.Servers = append(sip008.Servers, model.SIP008Server{
 		Id:         "00000000-0000-0000-0000-000000000000",
-		Remarks:    fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02")),
+		Remarks:    fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02 15:04:05 -0700")),
 		Server:     config.GetConfig().Host,
 		ServerPort: 1024,
 		Password:   "0",

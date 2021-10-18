@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/bot"
 	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/bot/commandHandler"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
@@ -10,6 +11,9 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/webserver/router"
 )
 
+//go:embed static/*
+var f embed.FS
+
 func main() {
 	model.GoBackgrounds()
 	go func() {
@@ -18,5 +22,5 @@ func main() {
 			log.Fatal("Bot: %v", err)
 		}
 	}()
-	log.Fatal("%v", router.Run())
+	log.Fatal("%v", router.Run(f))
 }
