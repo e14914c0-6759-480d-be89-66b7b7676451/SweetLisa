@@ -6,7 +6,6 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 // PostRegister registers a server
@@ -19,7 +18,7 @@ func PostRegister(ctx *gin.Context) {
 	// required info
 	if req.Host == "" ||
 		req.Port == 0 ||
-		!req.ManageArgument.Protocol.Valid() ||
+		!req.Argument.Protocol.Valid() ||
 		req.Name == "" {
 		common.ResponseBadRequestError(ctx)
 		return
@@ -31,19 +30,23 @@ func PostRegister(ctx *gin.Context) {
 		return
 	}
 	chatIdentifier := ctx.Param("ChatIdentifier")
-	if ticObj.ChatIdentifier != chatIdentifier||
-		ticObj.Type != model.TicketTypeServer{
+	if ticObj.ChatIdentifier != chatIdentifier {
+		common.ResponseBadRequestError(ctx)
+		return
+	}
+	switch ticObj.Type {
+	case model.TicketTypeServer, model.TicketTypeRelay:
+	default:
 		common.ResponseBadRequestError(ctx)
 		return
 	}
 	// register
-	req.FailureCount = 0
-	req.LastSeen = time.Now()
 	if err := service.RegisterServer(req); err != nil {
 		common.ResponseError(ctx, err)
 		return
 	}
-	log.Info("Received a register request from %v: Chat: %v, Name: %v", ctx.ClientIP(), req.Name, chatIdentifier)
+	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", ctx.ClientIP(), req.Name, chatIdentifier, ticObj.Type)
 	keys := service.GetKeysByServer(req)
+	log.Trace("register: %v", keys)
 	common.ResponseSuccess(ctx, keys)
 }

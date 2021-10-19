@@ -15,7 +15,7 @@ func SyncKeysByServer(ctx context.Context, server model.Server) (err error) {
 	mng, err := model.NewManager(model.ManageArgument{
 		Host:     server.Host,
 		Port:     strconv.Itoa(server.Port),
-		Argument: server.ManageArgument,
+		Argument: server.Argument,
 	})
 	return mng.SyncKeys(ctx, keys)
 }
@@ -31,12 +31,12 @@ func SyncKeysByChatIdentifier(ctx context.Context, chatIdentifier string) (err e
 	for _, svr := range servers {
 		keys := GetKeysByServer(svr)
 		wg.Add(1)
-		go func(svr model.Server, keys []model.Argument) {
+		go func(svr model.Server, keys []model.Server) {
 			defer wg.Done()
 			mng, err := model.NewManager(model.ManageArgument{
 				Host:     svr.Host,
 				Port:     strconv.Itoa(svr.Port),
-				Argument: svr.ManageArgument,
+				Argument: svr.Argument,
 			})
 			if err != nil {
 				mu.Lock()
@@ -48,7 +48,7 @@ func SyncKeysByChatIdentifier(ctx context.Context, chatIdentifier string) (err e
 			defer cancel()
 			if err = mng.SyncKeys(ctx, keys); err != nil {
 				mu.Lock()
-				errs = append(errs, err.Error())
+				errs = append(errs, "SyncKeys: "+err.Error())
 				mu.Unlock()
 				return
 			}

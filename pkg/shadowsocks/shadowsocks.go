@@ -76,7 +76,7 @@ func (s *Shadowsocks) Ping(ctx context.Context) (err error) {
 	return nil
 }
 
-func (s *Shadowsocks) SyncKeys(ctx context.Context, keys []model.Argument) (err error) {
+func (s *Shadowsocks) SyncKeys(ctx context.Context, keys []model.Server) (err error) {
 	body, err := jsoniter.Marshal(keys)
 	if err != nil {
 		return err

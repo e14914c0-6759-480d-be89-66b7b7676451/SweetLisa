@@ -14,7 +14,7 @@ type ManageArgument struct {
 
 type Manager interface {
 	Ping(ctx context.Context) (err error)
-	SyncKeys(ctx context.Context, keys []Argument) (err error)
+	SyncKeys(ctx context.Context, keys []Server) (err error)
 }
 
 type Creator func(arg ManageArgument) Manager

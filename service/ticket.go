@@ -6,6 +6,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
 	"time"
 )
@@ -18,10 +19,15 @@ func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic
 		Type:           typ,
 	}
 	// server ticket never expire
-	if typ == model.TicketTypeUser {
+	switch typ {
+	case model.TicketTypeUser:
 		tic.ExpireAt = time.Now().AddDate(0, 1, 0)
-	} else {
+	case model.TicketTypeServer, model.TicketTypeRelay:
 		tic.ExpireAt = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
+	default:
+		err = fmt.Errorf("unexpected ticket type: %v", tic.Type)
+		log.Error("%v", err)
+		return model.Ticket{}, err
 	}
 	return tic, db.DB().Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketTicket))

@@ -42,7 +42,7 @@ func GetTicket(c *gin.Context) {
 	defer cancel()
 	// SyncKeysByChatIdentifier
 	if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
-		common.ResponseError(c, err)
+		common.ResponseError(c, fmt.Errorf("SyncKeysByChatIdentifier: %v", err))
 		return
 	}
 	common.ResponseSuccess(c, gin.H{

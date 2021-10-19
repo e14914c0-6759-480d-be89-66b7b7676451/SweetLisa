@@ -103,13 +103,22 @@
                         Server
                     </label>
                 </div>
+                <div class="mui-radio">
+                    <label>
+                        <input type="radio"
+                               name="ticketType"
+                               id="ticketTypeServer"
+                               value="relay">
+                        Relay
+                    </label>
+                </div>
                 ` : ''}
-                <button class="mui-btn mui-btn--primary mui-btn--raised submit">${action}</button>
+                <button class="mui-btn mui-btn--primary mui-btn--raised" id="submit">${action}</button>
             </div>
         `
         Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
-        modalEl.querySelector('button.submit').addEventListener('click', e => {
-            const TypeMapper = {'user': 0, 'server': 1};
+        modalEl.querySelector('#submit').addEventListener('click', e => {
+            const TypeMapper = {'user': 0, 'server': 1, 'relay': 2};
             let strType = modalEl.querySelector('input[name="ticketType"]:checked').value;
             let Type = TypeMapper[strType];
             if (action === 'Register') {

@@ -2,7 +2,8 @@ package model
 
 import (
 	"crypto/sha1"
-	"encoding/hex"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
+	"github.com/eknkc/basex"
 	"time"
 )
 
@@ -40,8 +41,8 @@ type Server struct {
 	FailureCount int
 	// LastSeen is the time of last succeed ping
 	LastSeen time.Time
-	// ManageArgument is used to connect and manage the server
-	ManageArgument Argument
+	// Argument is used to connect and manage the server
+	Argument Argument
 }
 
 func (s *Server) GetUserArgument(userTicket string) Argument {
@@ -49,9 +50,24 @@ func (s *Server) GetUserArgument(userTicket string) Argument {
 	h.Write([]byte(s.Ticket))
 	h.Write([]byte(userTicket))
 	b := h.Sum(nil)
+	encoder, _ := basex.NewEncoding(common.Alphabet)
 	return Argument{
 		Protocol: Shadowsocks,
-		Password: hex.EncodeToString(b)[:21],
+		Password: encoder.Encode(b)[:21],
+		Method:   "chacha20-ietf-poly1305",
+	}
+}
+
+func (s *Server) GetRelayUserArgument(userTicket string, svr Server) Argument {
+	h := sha1.New()
+	h.Write([]byte(svr.Ticket))
+	h.Write([]byte(s.Ticket))
+	h.Write([]byte(userTicket))
+	b := h.Sum(nil)
+	encoder, _ := basex.NewEncoding(common.Alphabet)
+	return Argument{
+		Protocol: Shadowsocks,
+		Password: encoder.Encode(b)[:21],
 		Method:   "chacha20-ietf-poly1305",
 	}
 }

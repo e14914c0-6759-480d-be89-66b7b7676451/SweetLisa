@@ -4,7 +4,8 @@ go 1.17
 
 require (
 	github.com/boltdb/bolt v1.3.1
-	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211018083011-6dd6040c8aa2
+	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211019113435-2b02ec955a73
+	github.com/eknkc/basex v1.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
@@ -33,3 +34,5 @@ require (
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
+
+//replace github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211018083011-6dd6040c8aa2 => ../BitterJohn

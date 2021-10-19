@@ -11,7 +11,7 @@ import (
 
 func GetServerByTicket(ticket string) (server model.Server, err error) {
 	if err := db.DB().View(func(tx *bolt.Tx) error {
-		bkt := tx.Bucket([]byte(model.BucketTicket))
+		bkt := tx.Bucket([]byte(model.BucketServer))
 		if bkt == nil {
 			return bolt.ErrBucketNotFound
 		}
@@ -44,8 +44,12 @@ func GetServersByChatIdentifier(chatIdentifier string) (keys []model.Server, err
 				return nil
 			}
 			if tic.ChatIdentifier != chatIdentifier ||
-				common.Expired(tic.ExpireAt) ||
-				tic.Type != model.TicketTypeServer {
+				common.Expired(tic.ExpireAt) {
+				return nil
+			}
+			switch tic.Type {
+			case model.TicketTypeServer, model.TicketTypeRelay:
+			default:
 				return nil
 			}
 			var svr model.Server

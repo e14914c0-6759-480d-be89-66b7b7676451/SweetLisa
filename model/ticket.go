@@ -14,11 +14,12 @@ type TicketType int
 const (
 	TicketTypeUser TicketType = iota
 	TicketTypeServer
+	TicketTypeRelay
 	TicketTypeINVALID
 )
 
 func (t TicketType) IsValid() bool {
-	return t < TicketTypeINVALID
+	return t >= 0 && t < TicketTypeINVALID
 }
 
 type Ticket struct {
