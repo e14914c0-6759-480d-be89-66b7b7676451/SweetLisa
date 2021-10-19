@@ -13,7 +13,7 @@ import (
 
 type Params struct {
 	Address             string  `id:"address" short:"a" default:"0.0.0.0:14914" desc:"Listening address"`
-	Config              string  `id:"config" short:"c" default:"/etc/sweetlisa" desc:"SweetLisa configuration directory"`
+	Config              string  `id:"config" short:"c" default:"$HOME/.config/sweetlisa" desc:"SweetLisa configuration directory"`
 	BotToken            string  `id:"bot-token"`
 	Host                string  `id:"host" default:"example.org"`
 	LogLevel            string  `id:"log-level" default:"info" desc:"Optional values: trace, debug, info, warn or error"`
@@ -45,6 +45,11 @@ func initFunc() {
 	params.Config, err = common.HomeExpand(params.Config)
 	if err != nil {
 		log2.Fatal(err)
+	}
+	if strings.Contains(params.Config, "$HOME") {
+		if h, err := os.UserHomeDir(); err == nil {
+			params.Config = strings.ReplaceAll(params.Config, "$HOME", h)
+		}
 	}
 	if err := os.MkdirAll(params.Config, 0700); err != nil {
 		log2.Fatal(err)
