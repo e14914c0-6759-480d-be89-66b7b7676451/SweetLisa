@@ -25,7 +25,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pelletier/go-toml v1.2.0 // indirect
+	github.com/pelletier/go-toml v1.2.0 // `indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
@@ -35,4 +35,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
-//replace github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211018083011-6dd6040c8aa2 => ../BitterJohn
+//replace github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn => ../BitterJohn
