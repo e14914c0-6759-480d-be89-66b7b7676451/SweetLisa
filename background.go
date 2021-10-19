@@ -88,7 +88,7 @@ func GoBackgrounds() {
 			go func(chatIdentifier string) {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 				defer cancel()
-				if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+				if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 					log.Warn("sync keys: %v: chat: %v", err, chatIdentifier)
 				}
 			}(ticObj.ChatIdentifier)
@@ -97,7 +97,7 @@ func GoBackgrounds() {
 	})
 
 	// ping at intervals
-	go model.TickUpdateBackground(model.BucketServer, 1*time.Minute, func(b []byte, now time.Time) (updated []byte) {
+	go model.TickUpdateBackground(model.BucketServer, 1*time.Minute, func(b []byte, now time.Time) (todo func(b []byte) []byte) {
 		var server model.Server
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return nil
@@ -109,17 +109,30 @@ func GoBackgrounds() {
 		var err error
 		defer func() {
 			if err != nil {
-				server.FailureCount++
-				b, err := jsoniter.Marshal(server)
-				if err == nil {
-					updated = b
+				todo = func(b []byte) []byte {
+					var server model.Server
+					if err := jsoniter.Unmarshal(b, &server); err != nil {
+						return nil
+					}
+					server.FailureCount++
+					b, err := jsoniter.Marshal(server)
+					if err != nil {
+						return nil
+					}
+					return b
 				}
-			} else if server.SyncNextSeen {
-				go func() {
-					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-					defer cancel()
-					_ = service.SyncKeysByServer(ctx, server)
-				}()
+			} else {
+				if server.SyncNextSeen {
+					todo = func(b []byte) []byte {
+						go func() {
+							ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+							defer cancel()
+							// Run SyncKeysByServer in a new coroutine to avoid nested transactions and deadlock
+							_ = service.SyncKeysByServer(nil, ctx, server)
+						}()
+						return nil
+					}
+				}
 			}
 		}()
 		mng, err := model.NewManager(model.ManageArgument{
@@ -129,27 +142,22 @@ func GoBackgrounds() {
 		})
 		if err != nil {
 			log.Warn("NewManager(%v): %v", server.Name, err)
-			return nil
+			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		if err = mng.Ping(ctx); err != nil {
 			log.Warn("Ping: %v", err)
-			return nil
+			return
 		}
-		server.LastSeen = time.Now()
-		b, err = jsoniter.Marshal(server)
-		if err != nil {
-			return nil
-		}
-		return b
-	})()
+		return
+	})
 }
 
 func SyncAll() {
 	var identifiers []string
 	var wg sync.WaitGroup
-	for _, ticket := range service.GetValidTickets() {
+	for _, ticket := range service.GetValidTickets(nil) {
 		identifiers = append(identifiers, ticket.ChatIdentifier)
 	}
 	identifiers = common.Deduplicate(identifiers)
@@ -159,7 +167,7 @@ func SyncAll() {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+			if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
 		}(chatIdentifier)

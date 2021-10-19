@@ -23,7 +23,7 @@ func GetTicket(c *gin.Context) {
 		return
 	}
 	chatIdentifier := c.Param("ChatIdentifier")
-	if err := service.Verified(query.VerificationCode, chatIdentifier); err != nil {
+	if err := service.Verified(nil, query.VerificationCode, chatIdentifier); err != nil {
 		common.ResponseError(c, err)
 		return
 	}
@@ -33,7 +33,7 @@ func GetTicket(c *gin.Context) {
 		return
 	}
 	// SaveTicket
-	tic, err := service.SaveTicket(ticket, model.TicketType(query.Type), chatIdentifier)
+	tic, err := service.SaveTicket(nil, ticket, model.TicketType(query.Type), chatIdentifier)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -41,7 +41,7 @@ func GetTicket(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	// SyncKeysByChatIdentifier
-	if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+	if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 		common.ResponseError(c, fmt.Errorf("SyncKeysByChatIdentifier: %v", err))
 		return
 	}
@@ -60,13 +60,13 @@ func PostRenew(c *gin.Context) {
 		return
 	}
 	chatIdentifier := c.Param("ChatIdentifier")
-	if err := service.Verified(req.VerificationCode, chatIdentifier); err != nil {
+	if err := service.Verified(nil, req.VerificationCode, chatIdentifier); err != nil {
 		common.ResponseError(c, err)
 		return
 	}
 	ticket := c.Param("Ticket")
 	// verify the ticket
-	ticObj, err := service.GetValidTicketObj(ticket)
+	ticObj, err := service.GetValidTicketObj(nil, ticket)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -75,7 +75,7 @@ func PostRenew(c *gin.Context) {
 		common.ResponseBadRequestError(c)
 		return
 	}
-	renewedTic, err := service.SaveTicket(ticket, ticObj.Type, chatIdentifier)
+	renewedTic, err := service.SaveTicket(nil, ticket, ticObj.Type, chatIdentifier)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -84,7 +84,7 @@ func PostRenew(c *gin.Context) {
 		// SyncKeysByChatIdentifier
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+		if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 			common.ResponseError(c, err)
 			return
 		}

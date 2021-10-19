@@ -10,9 +10,9 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func GetKeysByServer(server model.Server) (keys []model.Server) {
+func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 	// server could be Server or Relay
-	db.DB().View(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
 			return nil
@@ -45,7 +45,7 @@ func GetKeysByServer(server model.Server) (keys []model.Server) {
 				userTickets = append(userTickets, ticket.Ticket)
 			case model.TicketTypeServer:
 				if serverTicket.Type == model.TicketTypeRelay {
-					svr, err := GetServerByTicket(ticket.Ticket)
+					svr, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
 							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
@@ -56,7 +56,7 @@ func GetKeysByServer(server model.Server) (keys []model.Server) {
 				}
 			case model.TicketTypeRelay:
 				if serverTicket.Type == model.TicketTypeServer {
-					relay, err := GetServerByTicket(ticket.Ticket)
+					relay, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
 							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
@@ -96,6 +96,11 @@ func GetKeysByServer(server model.Server) (keys []model.Server) {
 			}
 		}
 		return nil
-	})
+	}
+	if tx != nil {
+		f(tx)
+		return keys
+	}
+	db.DB().View(f)
 	return keys
 }

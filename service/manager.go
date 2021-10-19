@@ -14,9 +14,9 @@ import (
 	"time"
 )
 
-func SetServerSyncNextSeenByTicket(ticket string, setTo bool) error {
+func SetServerSyncNextSeenByTicket(wtx *bolt.Tx, ticket string, setTo bool) error {
 	log.Info("set %v to %v for server %v", strconv.Quote("SyncNextSeen"), setTo, ticket)
-	return db.DB().Update(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketServer))
 		var svr model.Server
 		if err := jsoniter.Unmarshal(bkt.Get([]byte(ticket)), &svr); err != nil {
@@ -28,19 +28,24 @@ func SetServerSyncNextSeenByTicket(ticket string, setTo bool) error {
 			return err
 		}
 		return bkt.Put([]byte(svr.Ticket), b)
-	})
+	}
+	if wtx != nil {
+		return f(wtx)
+	}
+	return db.DB().Update(f)
 }
 
-func SyncKeysByServer(ctx context.Context, server model.Server) (err error) {
+// SyncKeysByServer costs long time, thus tx here should be nil.
+func SyncKeysByServer(wtx *bolt.Tx, ctx context.Context, server model.Server) (err error) {
 	defer func() {
 		if err != nil && !server.SyncNextSeen {
-			_ = SetServerSyncNextSeenByTicket(server.Ticket, true)
+			_ = SetServerSyncNextSeenByTicket(wtx, server.Ticket, true)
 		}
 		if err == nil && server.SyncNextSeen {
-			_ = SetServerSyncNextSeenByTicket(server.Ticket, false)
+			_ = SetServerSyncNextSeenByTicket(wtx, server.Ticket, false)
 		}
 	}()
-	keys := GetKeysByServer(server)
+	keys := GetKeysByServer(wtx, server)
 	mng, err := model.NewManager(model.ManageArgument{
 		Host:     server.Host,
 		Port:     strconv.Itoa(server.Port),
@@ -52,8 +57,9 @@ func SyncKeysByServer(ctx context.Context, server model.Server) (err error) {
 	return mng.SyncKeys(ctx, keys)
 }
 
-func SyncKeysByChatIdentifier(ctx context.Context, chatIdentifier string) (err error) {
-	servers, err := GetServersByChatIdentifier(chatIdentifier)
+// SyncKeysByChatIdentifier costs long time, thus tx here should be nil.
+func SyncKeysByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier string) (err error) {
+	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier)
 	if err != nil {
 		return err
 	}
@@ -61,17 +67,17 @@ func SyncKeysByChatIdentifier(ctx context.Context, chatIdentifier string) (err e
 	var errs []string
 	var mu sync.Mutex
 	for _, svr := range servers {
-		keys := GetKeysByServer(svr)
+		keys := GetKeysByServer(wtx, svr)
 		wg.Add(1)
 		go func(svr model.Server, keys []model.Server) {
 			log.Trace("SyncKeysByChatIdentifier: chat: %v, svr: %v, keys: %v", chatIdentifier, svr, keys)
 			defer wg.Done()
 			defer func() {
 				if err != nil && !svr.SyncNextSeen {
-					_ = SetServerSyncNextSeenByTicket(svr.Ticket, true)
+					_ = SetServerSyncNextSeenByTicket(wtx, svr.Ticket, true)
 				}
 				if err == nil && svr.SyncNextSeen {
-					_ = SetServerSyncNextSeenByTicket(svr.Ticket, false)
+					_ = SetServerSyncNextSeenByTicket(wtx, svr.Ticket, false)
 				}
 			}()
 			mng, err := model.NewManager(model.ManageArgument{

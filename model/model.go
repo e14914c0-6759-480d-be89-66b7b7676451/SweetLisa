@@ -39,10 +39,10 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(b 
 	}
 }
 
-func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (updated []byte)) func() {
-	type toUpdate struct {
-		key []byte
-		val []byte
+func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (todo func(b []byte) []byte)) func() {
+	type keyTodo struct {
+		Key  []byte
+		Todo func(b []byte) []byte
 	}
 	return func() {
 		tick := time.Tick(interval)
@@ -50,7 +50,7 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 			go func(now time.Time) {
 				// mu projects the listUpdate
 				var mu sync.Mutex
-				var listUpdate []toUpdate
+				var keysTodo []keyTodo
 				var wg sync.WaitGroup
 				if err := db.DB().View(func(tx *bolt.Tx) error {
 					bkt := tx.Bucket([]byte(bucket))
@@ -66,12 +66,9 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 						copy(val, b)
 						go func(k, b []byte) {
 							defer wg.Done()
-							if updated := f(b, now); updated != nil {
+							if todo := f(b, now); todo != nil {
 								mu.Lock()
-								listUpdate = append(listUpdate, toUpdate{
-									key: k,
-									val: updated,
-								})
+								keysTodo = append(keysTodo, keyTodo{Key: k, Todo: todo})
 								mu.Unlock()
 							}
 						}(key, val)
@@ -84,7 +81,7 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 					log.Warn("TickUpdateBackground: View bucket %v: %v", bucket, err)
 				}
 				wg.Wait()
-				if len(listUpdate) == 0 {
+				if len(keysTodo) == 0 {
 					return
 				}
 				if err := db.DB().Update(func(tx *bolt.Tx) error {
@@ -92,9 +89,14 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 					if err != nil {
 						return err
 					}
-					for _, k := range listUpdate {
-						if err := bkt.Put(k.key, k.val); err != nil {
-							return err
+					for _, k := range keysTodo {
+						b := k.Todo(bkt.Get(k.Key))
+						if b == nil {
+							continue
+						}
+						if err := bkt.Put(k.Key, b); err != nil {
+							log.Warn("TickUpdateBackground: Update bucket %v: %v", bucket, err)
+							continue
 						}
 					}
 					return nil

@@ -13,11 +13,11 @@ import (
 )
 
 // NewVerification generates a new verification and returns the verificationCode
-func NewVerification(chatIdentifier string) (verificationCode string, err error) {
+func NewVerification(tx *bolt.Tx, chatIdentifier string) (verificationCode string, err error) {
 	if chatIdentifier == "" {
 		return "", fmt.Errorf("chatIdentifier cannot be empty")
 	}
-	err = db.DB().Update(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
 			return err
@@ -43,16 +43,22 @@ func NewVerification(chatIdentifier string) (verificationCode string, err error)
 			return err
 		}
 		return bkt.Put([]byte(verificationCode), b)
-	})
-	if err != nil {
+	}
+	if tx != nil {
+		if err = f(tx); err != nil {
+			return "", err
+		}
+		return verificationCode, nil
+	}
+	if err = db.DB().Update(f); err != nil {
 		return "", err
 	}
 	return verificationCode, nil
 }
 
 // Verify verifies if given verificationCode and chatIdentifier can pass the verification
-func Verify(verificationCode string, chatIdentifier string) error {
-	return db.DB().Update(func(tx *bolt.Tx) error {
+func Verify(wtx *bolt.Tx, verificationCode string, chatIdentifier string) error {
+	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
 			return err
@@ -87,12 +93,16 @@ func Verify(verificationCode string, chatIdentifier string) error {
 		}
 
 		return bkt.Put([]byte(verificationCode), b)
-	})
+	}
+	if wtx != nil {
+		return f(wtx)
+	}
+	return db.DB().Update(f)
 }
 
 // Verified check if given verificationCode and chatIdentifier verification has passed
-func Verified(verificationCode string, chatIdentifier string) error {
-	return db.DB().Update(func(tx *bolt.Tx) error {
+func Verified(wtx *bolt.Tx, verificationCode string, chatIdentifier string) error {
+	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketVerification))
 		if err != nil {
 			return err
@@ -119,5 +129,9 @@ func Verified(verificationCode string, chatIdentifier string) error {
 			return fmt.Errorf("invalid verification code")
 		}
 		return nil
-	})
+	}
+	if wtx != nil {
+		return f(wtx)
+	}
+	return db.DB().Update(f)
 }

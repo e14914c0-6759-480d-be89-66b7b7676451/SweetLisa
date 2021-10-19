@@ -15,7 +15,7 @@ import (
 func GetSubscription(c *gin.Context) {
 	ticket := c.Param("Ticket")
 	// verify the ticket
-	ticObj, err := service.GetValidTicketObj(ticket)
+	ticObj, err := service.GetValidTicketObj(nil, ticket)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -32,7 +32,7 @@ func GetSubscription(c *gin.Context) {
 		return
 	}
 	// get servers
-	servers, err := service.GetServersByChatIdentifier(chatIdentifier)
+	servers, err := service.GetServersByChatIdentifier(nil, chatIdentifier)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -59,7 +59,7 @@ func GetSubscription(c *gin.Context) {
 			// do not return lost-alive server
 			continue
 		}
-		svrTic, err := service.GetValidTicketObj(server.Ticket)
+		svrTic, err := service.GetValidTicketObj(nil, server.Ticket)
 		if err != nil {
 			log.Warn("GetSubscription: GetValidTicketObj: %v", err)
 			continue

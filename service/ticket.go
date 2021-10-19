@@ -12,7 +12,7 @@ import (
 )
 
 // SaveTicket saves the given ticket to the database and sets the expiration time to the next month
-func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic model.Ticket, err error) {
+func SaveTicket(wtx *bolt.Tx, ticket string, typ model.TicketType, chatIdentifier string) (tic model.Ticket, err error) {
 	tic = model.Ticket{
 		Ticket:         ticket,
 		ChatIdentifier: chatIdentifier,
@@ -29,7 +29,7 @@ func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic
 		log.Error("%v", err)
 		return model.Ticket{}, err
 	}
-	return tic, db.DB().Update(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketTicket))
 		if err != nil {
 			return err
@@ -39,12 +39,16 @@ func SaveTicket(ticket string, typ model.TicketType, chatIdentifier string) (tic
 			return err
 		}
 		return bkt.Put([]byte(ticket), b)
-	})
+	}
+	if f != nil {
+		return tic, f(wtx)
+	}
+	return tic, db.DB().Update(f)
 }
 
 // GetValidTicketObj returns ticket object if given ticket is valid
-func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
-	err = db.DB().View(func(tx *bolt.Tx) error {
+func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error) {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
 			return fmt.Errorf("bucket %v does not exist", model.BucketTicket)
@@ -63,15 +67,21 @@ func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
 		}
 		tic = t
 		return nil
-	})
-	if err != nil {
+	}
+	if tx != nil {
+		if err = f(tx); err != nil {
+			return model.Ticket{}, err
+		}
+		return tic, nil
+	}
+	if err = db.DB().View(f); err != nil {
 		return model.Ticket{}, err
 	}
 	return tic, nil
 }
 
-func GetValidTickets() (tickets []model.Ticket) {
-	_ = db.DB().View(func(tx *bolt.Tx) error {
+func GetValidTickets(tx *bolt.Tx) (tickets []model.Ticket) {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
 			return fmt.Errorf("bucket %v does not exist", model.BucketTicket)
@@ -87,6 +97,11 @@ func GetValidTickets() (tickets []model.Ticket) {
 			tickets = append(tickets, t)
 			return nil
 		})
-	})
+	}
+	if tx != nil {
+		_ = f(tx)
+		return tickets
+	}
+	_ = db.DB().View(f)
 	return tickets
 }

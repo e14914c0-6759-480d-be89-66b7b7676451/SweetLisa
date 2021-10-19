@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func GetServerByTicket(ticket string) (server model.Server, err error) {
-	if err := db.DB().View(func(tx *bolt.Tx) error {
+func GetServerByTicket(tx *bolt.Tx, ticket string) (server model.Server, err error) {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketServer))
 		if bkt == nil {
 			return bolt.ErrBucketNotFound
@@ -21,15 +21,22 @@ func GetServerByTicket(ticket string) (server model.Server, err error) {
 			return fmt.Errorf("%w: the server may not be registered", db.ErrKeyNotFound)
 		}
 		return jsoniter.Unmarshal(b, &server)
-	}); err != nil {
+	}
+	if tx != nil {
+		if err = f(tx); err != nil {
+			return model.Server{}, fmt.Errorf("GetServerByTicket: %w", err)
+		}
+		return server, nil
+	}
+	if err := db.DB().View(f); err != nil {
 		return model.Server{}, fmt.Errorf("GetServerByTicket: %w", err)
 	}
 	return server, nil
 }
 
-func GetServersByChatIdentifier(chatIdentifier string) (keys []model.Server, err error) {
+func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (keys []model.Server, err error) {
 	var servers []model.Server
-	db.DB().View(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
 			return nil
@@ -62,16 +69,21 @@ func GetServersByChatIdentifier(chatIdentifier string) (keys []model.Server, err
 			return nil
 		})
 		return nil
-	})
+	}
+	if tx != nil {
+		f(tx)
+		return servers, nil
+	}
+	db.DB().View(f)
 	return servers, nil
 }
 
 // RegisterServer registers a server
-func RegisterServer(server model.Server) (err error) {
+func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 	server.FailureCount = 0
 	server.LastSeen = time.Now()
 	server.SyncNextSeen = false
-	if err := db.DB().Update(func(tx *bolt.Tx) error {
+	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketServer))
 		if err != nil {
 			return err
@@ -81,7 +93,15 @@ func RegisterServer(server model.Server) (err error) {
 			return err
 		}
 		return bkt.Put([]byte(server.Ticket), b)
-	}); err != nil {
+	}
+	if wtx != nil {
+		if err := f(wtx); err != nil {
+			return fmt.Errorf("RegisterServer: %w", err)
+		}
+		return nil
+	}
+
+	if err := db.DB().Update(f); err != nil {
 		return fmt.Errorf("RegisterServer: %w", err)
 	}
 	return nil

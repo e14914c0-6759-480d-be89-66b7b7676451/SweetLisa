@@ -20,7 +20,7 @@ func Verify(b *bot.Bot, m *tb.Message, params []string) {
 
 	log.Info("Verify: chatIdentifier: %v, text: %v", chatIdentifier, params[0])
 	// m.Text should be a random string for verification
-	if err := service.Verify(params[0], chatIdentifier); err != nil {
+	if err := service.Verify(nil, params[0], chatIdentifier); err != nil {
 		b.Bot.Reply(m, err.Error(), tb.Silent, tb.NoPreview)
 	} else {
 		b.Bot.Reply(m, "Passed. This code is valid within 2 minutes.", tb.Silent, tb.NoPreview)
