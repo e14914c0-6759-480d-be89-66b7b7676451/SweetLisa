@@ -25,17 +25,14 @@ func PostRegister(ctx *gin.Context) {
 		return
 	}
 	// verify the server ticket
-	code, err := service.GetValidTicketObj(req.Ticket)
+	ticObj, err := service.GetValidTicketObj(req.Ticket)
 	if err != nil {
 		common.ResponseError(ctx, err)
 		return
 	}
 	chatIdentifier := ctx.Param("ChatIdentifier")
-	if code.ChatIdentifier != chatIdentifier {
-		common.ResponseBadRequestError(ctx)
-		return
-	}
-	if code.Type != model.TicketTypeServer {
+	if ticObj.ChatIdentifier != chatIdentifier||
+		ticObj.Type != model.TicketTypeServer{
 		common.ResponseBadRequestError(ctx)
 		return
 	}

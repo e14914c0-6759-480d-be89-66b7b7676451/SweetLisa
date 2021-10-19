@@ -110,7 +110,8 @@
         Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
         modalEl.querySelector('button.submit').addEventListener('click', e => {
             const TypeMapper = {'user': 0, 'server': 1};
-            let Type = TypeMapper[modalEl.querySelector('input[name="ticketType"]:checked').value];
+            let strType = modalEl.querySelector('input[name="ticketType"]:checked').value;
+            let Type = TypeMapper[strType];
             if (action === 'Register') {
                 fetch(`/api/${ChatIdentifier}/ticket?VerificationCode=${VerificationCode}&Type=${Type}`, {
                     method: 'GET'
@@ -140,10 +141,12 @@
                             <input class="easy-selectable" type="text" value="${resp.Data.Ticket.Ticket}" readonly="readonly">
                             <label>Ticket</label>
                         </div>
+                        ${strType === 'user' ? `
                         <div class="mui-textfield mui-textfield--float-label">
                             <input class="easy-selectable" type="text" value="${location.origin}/api/${ChatIdentifier}/${resp.Data.Ticket.Ticket}/sub" readonly="readonly">
                             <label>Subscription Link</label>
                         </div>
+                        ` : ''}
                     </div>
                     `
                     Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));

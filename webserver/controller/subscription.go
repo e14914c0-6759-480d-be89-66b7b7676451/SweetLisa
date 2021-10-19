@@ -20,7 +20,7 @@ func GetSubscription(c *gin.Context) {
 		return
 	}
 	chatIdentifier := c.Param("ChatIdentifier")
-	if ticObj.ChatIdentifier != chatIdentifier {
+	if ticObj.ChatIdentifier != chatIdentifier || ticObj.Type != model.TicketTypeUser {
 		common.ResponseBadRequestError(c)
 		return
 	}
