@@ -43,6 +43,8 @@ type Server struct {
 	LastSeen time.Time
 	// Argument is used to connect and manage the server
 	Argument Argument
+	// SyncNextSeen indicates that the last sync failed and needs to be synced the next time the ping is successful
+	SyncNextSeen bool
 }
 
 func (s *Server) GetUserArgument(userTicket string) Argument {

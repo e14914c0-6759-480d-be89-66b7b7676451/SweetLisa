@@ -114,6 +114,12 @@ func GoBackgrounds() {
 				if err == nil {
 					updated = b
 				}
+			} else if server.SyncNextSeen {
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+					defer cancel()
+					_ = service.SyncKeysByServer(ctx, server)
+				}()
 			}
 		}()
 		mng, err := model.NewManager(model.ManageArgument{
