@@ -10,6 +10,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	jsoniter "github.com/json-iterator/go"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -137,4 +138,23 @@ func GoBackgrounds() {
 		}
 		return b
 	})()
+}
+
+func SyncAll() {
+	var identifiers []string
+	var wg sync.WaitGroup
+	for _, ticket := range service.GetValidTickets() {
+		identifiers = append(identifiers, ticket.ChatIdentifier)
+	}
+	identifiers = common.Deduplicate(identifiers)
+	for _, chatIdentifier := range identifiers {
+		wg.Add(1)
+		go func(chatIdentifier string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
+				log.Warn("SyncAll: %v", err)
+			}
+		}(chatIdentifier)
+	}
 }

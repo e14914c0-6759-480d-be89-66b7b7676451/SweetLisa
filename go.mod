@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/boltdb/bolt v1.3.1
-	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211019113435-2b02ec955a73
+	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211019113859-3595f87fd1c7
 	github.com/eknkc/basex v1.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/json-iterator/go v1.1.12

@@ -15,6 +15,7 @@ var f embed.FS
 
 func main() {
 	GoBackgrounds()
+	go SyncAll()
 	go func() {
 		_, err := bot.New(config.GetConfig().BotToken, nil)
 		if err != nil {

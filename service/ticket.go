@@ -69,3 +69,24 @@ func GetValidTicketObj(ticket string) (tic model.Ticket, err error) {
 	}
 	return tic, nil
 }
+
+func GetValidTickets() (tickets []model.Ticket) {
+	_ = db.DB().View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket([]byte(model.BucketTicket))
+		if bkt == nil {
+			return fmt.Errorf("bucket %v does not exist", model.BucketTicket)
+		}
+		return bkt.ForEach(func(k, v []byte) error {
+			var t model.Ticket
+			if err := jsoniter.Unmarshal(v, &t); err != nil {
+				return nil
+			}
+			if common.Expired(t.ExpireAt) {
+				return nil
+			}
+			tickets = append(tickets, t)
+			return nil
+		})
+	})
+	return tickets
+}
