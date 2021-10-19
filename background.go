@@ -155,6 +155,8 @@ func SyncAll() {
 			if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
+			wg.Done()
 		}(chatIdentifier)
 	}
+	wg.Wait()
 }
