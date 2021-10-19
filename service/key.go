@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
@@ -46,7 +47,9 @@ func GetKeysByServer(server model.Server) (keys []model.Server) {
 				if serverTicket.Type == model.TicketTypeRelay {
 					svr, err := GetServerByTicket(ticket.Ticket)
 					if err != nil {
-						log.Warn("GetKeysByServer: cannot get server by ticket: %v", ticket.Ticket)
+						if !errors.Is(err, db.ErrKeyNotFound) {
+							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
+						}
 						return nil
 					}
 					servers = append(servers, svr)
@@ -55,7 +58,9 @@ func GetKeysByServer(server model.Server) (keys []model.Server) {
 				if serverTicket.Type == model.TicketTypeServer {
 					relay, err := GetServerByTicket(ticket.Ticket)
 					if err != nil {
-						log.Warn("GetKeysByServer: cannot get server by ticket: %v", ticket.Ticket)
+						if !errors.Is(err, db.ErrKeyNotFound) {
+							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
+						}
 						return nil
 					}
 					relays = append(relays, relay)

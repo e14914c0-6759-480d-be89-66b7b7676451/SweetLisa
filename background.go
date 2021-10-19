@@ -150,12 +150,12 @@ func SyncAll() {
 	for _, chatIdentifier := range identifiers {
 		wg.Add(1)
 		go func(chatIdentifier string) {
+			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			if err := service.SyncKeysByChatIdentifier(ctx, chatIdentifier); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
-			wg.Done()
 		}(chatIdentifier)
 	}
 	wg.Wait()

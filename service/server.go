@@ -17,7 +17,7 @@ func GetServerByTicket(ticket string) (server model.Server, err error) {
 		}
 		b := bkt.Get([]byte(ticket))
 		if b == nil {
-			return db.ErrKeyNotFound
+			return fmt.Errorf("%w: the server may not be registered", db.ErrKeyNotFound)
 		}
 		return jsoniter.Unmarshal(b, &server)
 	}); err != nil {
