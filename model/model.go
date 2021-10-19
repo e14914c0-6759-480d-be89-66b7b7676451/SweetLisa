@@ -40,11 +40,11 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(b 
 }
 
 func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (todo func(b []byte) []byte)) func() {
-	type keyTodo struct {
-		Key  []byte
-		Todo func(b []byte) []byte
-	}
 	return func() {
+		type keyTodo struct {
+			Key  []byte
+			Todo func(b []byte) []byte
+		}
 		tick := time.Tick(interval)
 		for now := range tick {
 			go func(now time.Time) {

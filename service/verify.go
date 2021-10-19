@@ -13,7 +13,7 @@ import (
 )
 
 // NewVerification generates a new verification and returns the verificationCode
-func NewVerification(tx *bolt.Tx, chatIdentifier string) (verificationCode string, err error) {
+func NewVerification(wtx *bolt.Tx, chatIdentifier string) (verificationCode string, err error) {
 	if chatIdentifier == "" {
 		return "", fmt.Errorf("chatIdentifier cannot be empty")
 	}
@@ -44,8 +44,8 @@ func NewVerification(tx *bolt.Tx, chatIdentifier string) (verificationCode strin
 		}
 		return bkt.Put([]byte(verificationCode), b)
 	}
-	if tx != nil {
-		if err = f(tx); err != nil {
+	if wtx != nil {
+		if err = f(wtx); err != nil {
 			return "", err
 		}
 		return verificationCode, nil

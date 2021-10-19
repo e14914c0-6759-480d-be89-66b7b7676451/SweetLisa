@@ -94,7 +94,7 @@ func GoBackgrounds() {
 			}(ticObj.ChatIdentifier)
 		}
 		return true
-	})
+	})()
 
 	// ping at intervals
 	go model.TickUpdateBackground(model.BucketServer, 1*time.Minute, func(b []byte, now time.Time) (todo func(b []byte) []byte) {
@@ -151,7 +151,7 @@ func GoBackgrounds() {
 			return
 		}
 		return
-	})
+	})()
 }
 
 func SyncAll() {
