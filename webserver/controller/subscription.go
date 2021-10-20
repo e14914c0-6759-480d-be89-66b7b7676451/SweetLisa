@@ -71,7 +71,7 @@ func GetSubscription(c *gin.Context) {
 		if svrTic.Type == model.TicketTypeServer {
 			svrs = append(svrs, server)
 		}
-		arg := server.GetUserArgument(ticket)
+		arg := model.GetUserArgument(server.Ticket, ticket)
 		sip008.Servers = append(sip008.Servers, model.SIP008Server{
 			Id:         common.StringToUUID5(arg.Password),
 			Remarks:    server.Name,
@@ -83,7 +83,7 @@ func GetSubscription(c *gin.Context) {
 	}
 	for _, svr := range svrs {
 		for _, relay := range relays {
-			arg := relay.GetRelayUserArgument(ticket, svr)
+			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
 			sip008.Servers = append(sip008.Servers, model.SIP008Server{
 				Id:         common.StringToUUID5(arg.Password),
 				Remarks:    relay.Name + " -> " + svr.Name,

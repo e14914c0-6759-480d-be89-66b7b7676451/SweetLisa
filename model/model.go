@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(b []byte, now time.Time) (expired bool)) func() {
+func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx *bolt.Tx, b []byte, now time.Time) (expired bool)) func() {
 	return func() {
 		tick := time.Tick(cleanInterval)
 		for now := range tick {
@@ -19,7 +19,7 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(b 
 				}
 				var listClean [][]byte
 				if err = bkt.ForEach(func(k, b []byte) error {
-					if f(b, now) {
+					if f(tx, b, now) {
 						listClean = append(listClean, k)
 					}
 					return nil

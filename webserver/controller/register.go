@@ -24,6 +24,7 @@ func PostRegister(ctx *gin.Context) {
 		return
 	}
 	// verify the server ticket
+	log.Trace("register: GetValidTicketObj: %v", req.Ticket)
 	ticObj, err := service.GetValidTicketObj(nil, req.Ticket)
 	if err != nil {
 		common.ResponseError(ctx, err)
@@ -41,12 +42,13 @@ func PostRegister(ctx *gin.Context) {
 		return
 	}
 	// register
+	log.Trace("register: RegisterServer")
 	if err := service.RegisterServer(nil, req); err != nil {
 		common.ResponseError(ctx, err)
 		return
 	}
 	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", ctx.ClientIP(), req.Name, chatIdentifier, ticObj.Type)
-	passages := service.GetPassagesByServer(nil, req)
+	passages := service.GetPassagesByServer(nil, req.Ticket)
 	log.Trace("register: %v", passages)
 	common.ResponseSuccess(ctx, passages)
 }

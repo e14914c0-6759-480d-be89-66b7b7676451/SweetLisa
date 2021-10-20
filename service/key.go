@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Passage) {
+func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Passage) {
 	// server could be Server or Relay
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
@@ -19,12 +19,12 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 			return nil
 		}
 		// get server chatIdentifier
-		bServerTicket := bkt.Get([]byte(server.Ticket))
-		var serverTicket model.Ticket
-		if err := jsoniter.Unmarshal(bServerTicket, &serverTicket); err != nil {
+		bServerTicket := bkt.Get([]byte(serverTicket))
+		var serverTicketObj model.Ticket
+		if err := jsoniter.Unmarshal(bServerTicket, &serverTicketObj); err != nil {
 			return err
 		}
-		chatIdentifier := serverTicket.ChatIdentifier
+		chatIdentifier := serverTicketObj.ChatIdentifier
 		// generate all user/relay passages in this chat
 		var userTickets []string
 		var servers []model.Server
@@ -45,7 +45,7 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 			case model.TicketTypeUser:
 				userTickets = append(userTickets, ticket.Ticket)
 			case model.TicketTypeServer:
-				if serverTicket.Type == model.TicketTypeRelay {
+				if serverTicketObj.Type == model.TicketTypeRelay {
 					svr, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
@@ -56,7 +56,7 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 					servers = append(servers, svr)
 				}
 			case model.TicketTypeRelay:
-				if serverTicket.Type == model.TicketTypeServer {
+				if serverTicketObj.Type == model.TicketTypeServer {
 					relay, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
@@ -69,11 +69,11 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 			}
 			return nil
 		})
-		switch serverTicket.Type {
+		switch serverTicketObj.Type {
 		case model.TicketTypeServer:
 			for _, ticket := range userTickets {
 				passages = append(passages, model.Passage{
-					In: model.In{Argument: server.GetUserArgument(ticket)},
+					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket)},
 				})
 			}
 			for _, relay := range relays {
@@ -81,7 +81,7 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 					passages = append(passages, model.Passage{
 						In: model.In{
 							From:     relay.Name,
-							Argument: relay.GetRelayUserArgument(userTicket, server),
+							Argument: model.GetRelayUserArgument(serverTicket, relay.Ticket, userTicket),
 						},
 					})
 				}
@@ -89,7 +89,7 @@ func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Pas
 		case model.TicketTypeRelay:
 			for _, svr := range servers {
 				for _, userTicket := range userTickets {
-					arg := server.GetRelayUserArgument(userTicket, svr)
+					arg := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket)
 					passages = append(passages, model.Passage{
 						In: model.In{Argument: arg}, // TODO: other Protocols and arguments
 						Out: &model.Out{

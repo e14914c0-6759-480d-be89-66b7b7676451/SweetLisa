@@ -81,7 +81,6 @@ func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (servers []m
 func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 	server.FailureCount = 0
 	server.LastSeen = time.Now()
-	server.SyncNextSeen = false
 	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketServer))
 		if err != nil {

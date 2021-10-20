@@ -2,8 +2,9 @@ package model
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
-	"github.com/eknkc/basex"
+	"reflect"
 	"time"
 )
 
@@ -43,33 +44,31 @@ type Server struct {
 	LastSeen time.Time
 	// Argument is used to connect and manage the server
 	Argument Argument
-	// SyncNextSeen indicates that the last sync failed and needs to be synced the next time the ping is successful
+
 	SyncNextSeen bool
 }
 
-func (s *Server) GetUserArgument(userTicket string) Argument {
+func GetUserArgument(serverTicket, userTicket string) Argument {
 	h := sha1.New()
-	h.Write([]byte(s.Ticket))
+	h.Write([]byte(serverTicket))
 	h.Write([]byte(userTicket))
 	b := h.Sum(nil)
-	encoder, _ := basex.NewEncoding(common.Alphabet)
 	return Argument{
 		Protocol: Shadowsocks,
-		Password: encoder.Encode(b)[:21],
+		Password: common.Base62Encoder.Encode(b)[:21],
 		Method:   "chacha20-ietf-poly1305",
 	}
 }
 
-func (s *Server) GetRelayUserArgument(userTicket string, svr Server) Argument {
+func GetRelayUserArgument(serverTicket, relayTicket, userTicket string) Argument {
 	h := sha1.New()
-	h.Write([]byte(svr.Ticket))
-	h.Write([]byte(s.Ticket))
+	h.Write([]byte(serverTicket))
+	h.Write([]byte(relayTicket))
 	h.Write([]byte(userTicket))
 	b := h.Sum(nil)
-	encoder, _ := basex.NewEncoding(common.Alphabet)
 	return Argument{
 		Protocol: Shadowsocks,
-		Password: encoder.Encode(b)[:21],
+		Password: common.Base62Encoder.Encode(b)[:21],
 		Method:   "chacha20-ietf-poly1305",
 	}
 }
@@ -83,4 +82,14 @@ type Argument struct {
 	Password string `json:",omitempty"`
 	// Optional
 	Method string `json:",omitempty"`
+}
+
+func (a Argument) Hash() string {
+	h := sha1.New()
+	v := reflect.ValueOf(a)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		h.Write([]byte(fmt.Sprint(field.Interface())))
+	}
+	return common.Base95Encoder.Encode(h.Sum(nil))
 }

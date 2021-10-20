@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/eknkc/basex"
 	"net/url"
 	"os/user"
 	"path/filepath"
@@ -13,6 +14,10 @@ import (
 )
 
 const Alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789"
+const Alphabet95 = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789`~!@#$%^&*()_-+=[]\\;',./{}|:\"<>? "
+
+var Base62Encoder, _ = basex.NewEncoding(Alphabet)
+var Base95Encoder, _ = basex.NewEncoding(Alphabet95)
 
 var (
 	NotSameTypeErr    = fmt.Errorf("cannot fill empty: the two value have different type")
