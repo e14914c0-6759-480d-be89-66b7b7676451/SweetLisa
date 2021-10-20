@@ -103,9 +103,7 @@ func (b *ServerSyncBox) SyncBackground() {
 				b.lastSync[ticket] = time.Now()
 				wg.Add(1)
 				go func(ctx context.Context, cancel func(), ticket string) {
-					var err error
 					defer func() {
-						_ = setSyncNextSeen(ticket, err != nil)
 						select {
 						case <-ctx.Done():
 							// cancel() was called and a new cancel will overwrite the old one.
@@ -129,14 +127,20 @@ func (b *ServerSyncBox) SyncBackground() {
 						Argument: svr.Argument,
 					})
 					if err != nil {
-						log.Info("SyncBackground: %v", err)
+						log.Info("SyncBackground: %v: %v", svr.Name, err)
 						return
 					}
+					defer func() {
+						if err != nil {
+							log.Info("Retry the sync after seeing the server %v next time", svr.Name)
+						}
+						_ = setSyncNextSeen(ticket, err != nil)
+					}()
 					subCtx, subCancel := context.WithTimeout(ctx, 15*time.Second)
 					defer subCancel()
 					passages := GetPassagesByServer(nil, svr.Ticket)
 					if err = mng.SyncPassages(subCtx, passages); err != nil {
-						log.Info("SyncBackground: %v", err)
+						log.Info("SyncBackground: %v: %v", svr.Name, err)
 						return
 					}
 				}(ctx, cancel, ticket)
@@ -201,7 +205,7 @@ func SyncPassagesByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentif
 	return nil
 }
 
-func Ping(ctx context.Context,server model.Server) error {
+func Ping(ctx context.Context, server model.Server) error {
 	mng, err := model.NewManager(model.ManageArgument{
 		Host:     server.Host,
 		Port:     strconv.Itoa(server.Port),

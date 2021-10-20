@@ -43,25 +43,26 @@ func PostRegister(c *gin.Context) {
 		common.ResponseBadRequestError(c)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	// ping test
-	defer cancel()
-	if err := service.Ping(ctx, req); err != nil {
-		err = fmt.Errorf("unreachable: %w", err)
-		log.Warn("failed to register: %v", err)
-		common.ResponseError(c, err)
-		return
-	}
-	// register
-	if err := service.RegisterServer(nil, req); err != nil {
-		common.ResponseError(c, err)
-		return
-	}
-	defer cancel()
-	if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-		common.ResponseError(c, err)
-		return
-	}
+	go func(req model.Server, chatIdentifier string) {
+		// waiting for the starting of BitterJohn
+		time.Sleep(5 * time.Second)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		// ping test
+		if err := service.Ping(ctx, req); err != nil {
+			err = fmt.Errorf("unreachable: %w", err)
+			log.Warn("failed to register: %v", err)
+			return
+		}
+		// register
+		if err := service.RegisterServer(nil, req); err != nil {
+			return
+		}
+		if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+			return
+		}
+	}(req, chatIdentifier)
 	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", c.ClientIP(), req.Name, chatIdentifier, ticObj.Type)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
 	log.Trace("register: %v", passages)

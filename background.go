@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -134,9 +135,38 @@ func SyncAll() {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
+			servers, _ := service.GetServersByChatIdentifier(nil, chatIdentifier)
+			var chatWg sync.WaitGroup
+			for _, server := range servers {
+				serverTicket, err := service.GetValidTicketObj(nil, server.Ticket)
+				if err != nil {
+					log.Warn("SyncAll: cannot get ticket of server: %v", server.Name)
+					continue
+				}
+				if serverTicket.Type == model.TicketTypeRelay {
+					chatWg.Add(1)
+					go func(relay model.Server, chatIdentifier string) {
+						defer chatWg.Done()
+						ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+						// ping test
+						defer cancel()
+						if err := service.Ping(ctx, relay); err != nil {
+							err = fmt.Errorf("unreachable: %w", err)
+							log.Warn("failed to register: %v", err)
+							return
+						}
+						// register
+						if err := service.RegisterServer(nil, relay); err != nil {
+							return
+						}
+					}(server, chatIdentifier)
+				}
+			}
+			chatWg.Wait()
 			if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
+			log.Info("SyncAll for chat %v has finished", chatIdentifier)
 		}(chatIdentifier)
 	}
 	wg.Wait()

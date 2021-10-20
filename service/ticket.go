@@ -40,7 +40,7 @@ func SaveTicket(wtx *bolt.Tx, ticket string, typ model.TicketType, chatIdentifie
 		}
 		return bkt.Put([]byte(ticket), b)
 	}
-	if f != nil {
+	if wtx != nil {
 		return tic, f(wtx)
 	}
 	return tic, db.DB().Update(f)
