@@ -14,21 +14,6 @@ import (
 	"time"
 )
 
-func shouldTicketBeRemove(server model.Server, typ model.TicketType) bool {
-	if server.FailureCount < model.MaxFailureCount {
-		return false
-	}
-	switch typ {
-	case model.TicketTypeServer:
-		return time.Since(server.LastSeen) > 24*35*time.Hour
-	case model.TicketTypeRelay:
-		return time.Since(server.LastSeen) > 24*35*time.Hour
-	default:
-		log.Error("shouldTicketBeRemove: unexpected ticket type: %v", typ)
-		return false
-	}
-}
-
 func GoBackgrounds() {
 	// remove expired verifications
 	go model.ExpireCleanBackground(model.BucketVerification, 10*time.Second, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool) {
@@ -91,7 +76,7 @@ func GoBackgrounds() {
 			return nil
 		}
 		if server.FailureCount >= model.MaxFailureCount {
-			// stop the ping and wait for the register
+			// stop the ping and wait for the proactive register
 			return nil
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -138,25 +123,28 @@ func SyncAll() {
 		identifiers = append(identifiers, ticket.ChatIdentifier)
 	}
 	identifiers = common.Deduplicate(identifiers)
+	// sync each chats
 	for _, chatIdentifier := range identifiers {
 		wg.Add(1)
+		// concurrently
 		go func(chatIdentifier string) {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			servers, _ := service.GetServersByChatIdentifier(nil, chatIdentifier)
 			var chatWg sync.WaitGroup
+			// For each chat, sync servers in the chat concurrently.
 			for _, server := range servers {
 				serverTicket, err := service.GetValidTicketObj(nil, server.Ticket)
 				if err != nil {
 					log.Warn("SyncAll: cannot get ticket of server: %v", server.Name)
 					continue
 				}
+				// For the relay, we should confirm it is reachable before registering.
 				if serverTicket.Type == model.TicketTypeRelay {
 					chatWg.Add(1)
-					go func(relay model.Server, chatIdentifier string) {
+					go func(ctx context.Context,relay model.Server, chatIdentifier string) {
 						defer chatWg.Done()
-						ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 						// ping test
 						defer cancel()
 						if err := service.Ping(ctx, relay); err != nil {
@@ -168,7 +156,7 @@ func SyncAll() {
 						if err := service.RegisterServer(nil, relay); err != nil {
 							return
 						}
-					}(server, chatIdentifier)
+					}(ctx, server, chatIdentifier)
 				}
 			}
 			chatWg.Wait()

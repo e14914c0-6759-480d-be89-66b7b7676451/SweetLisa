@@ -39,6 +39,7 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx
 	}
 }
 
+// TickUpdateBackground will invoke f concurrently in view mode and then invoke non-nil todos in update mode.
 func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (todo func(b []byte) []byte)) func() {
 	return func() {
 		type keyTodo struct {
@@ -48,7 +49,7 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 		tick := time.Tick(interval)
 		for now := range tick {
 			go func(now time.Time) {
-				// mu projects the listUpdate
+				// mu protects the keysTodo
 				var mu sync.Mutex
 				var keysTodo []keyTodo
 				var wg sync.WaitGroup

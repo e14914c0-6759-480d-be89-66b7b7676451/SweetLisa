@@ -41,10 +41,14 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 			if common.Expired(ticket.ExpireAt) {
 				return nil
 			}
+			// classify the ticket to slices above
 			switch ticket.Type {
 			case model.TicketTypeUser:
+				// user ticket
 				userTickets = append(userTickets, ticket.Ticket)
 			case model.TicketTypeServer:
+				// server ticket
+				// only the relay need servers
 				if serverTicketObj.Type == model.TicketTypeRelay {
 					svr, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
@@ -56,6 +60,8 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 					servers = append(servers, svr)
 				}
 			case model.TicketTypeRelay:
+				// relay ticket
+				// only the server need relays
 				if serverTicketObj.Type == model.TicketTypeServer {
 					relay, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
@@ -71,6 +77,7 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 		})
 		switch serverTicketObj.Type {
 		case model.TicketTypeServer:
+			// server inbounds are for users and relays
 			for _, ticket := range userTickets {
 				passages = append(passages, model.Passage{
 					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket)},
@@ -85,6 +92,8 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 				})
 			}
 		case model.TicketTypeRelay:
+			// relay inbounds are for users but related with servers (n*m)
+			// relay outbounds are for servers
 			for _, svr := range servers {
 				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket)
 				for _, userTicket := range userTickets {
