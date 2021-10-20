@@ -21,7 +21,7 @@ func shouldTicketBeRemove(server model.Server, typ model.TicketType) bool {
 	case model.TicketTypeServer:
 		return time.Since(server.LastSeen) > 24*35*time.Hour
 	case model.TicketTypeRelay:
-		return time.Since(server.LastSeen) > 10*time.Minute
+		return time.Since(server.LastSeen) > 24*35*time.Hour
 	default:
 		log.Error("shouldTicketBeRemove: unexpected ticket type: %v", typ)
 		return false
@@ -69,16 +69,9 @@ func GoBackgrounds() {
 			log.Warn("remove expired server (%v) ticket (%v) fail: %v", server.Name, server.Ticket, err)
 			return false
 		}
-		// should corresponding ticket be remove?
-		if expired = shouldTicketBeRemove(server, ticObj.Type); expired {
-			if err := bkt.Delete([]byte(server.Ticket)); err != nil {
-				log.Warn("remove expired server (%v) ticket (%v) fail: %v", server.Name, server.Ticket, err)
-				return false
-			}
-		}
 		// Relay is a server and also a client.
 		// We should remove its keys immediately once it loses connection to avoid abusing.
-		if expired && ticObj.Type == model.TicketTypeRelay {
+		if ticObj.Type == model.TicketTypeRelay && now.Sub(server.LastSeen) >= 10*time.Minute {
 			go func(chatIdentifier string) {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 				defer cancel()
@@ -87,7 +80,7 @@ func GoBackgrounds() {
 				}
 			}(ticObj.ChatIdentifier)
 		}
-		return expired
+		return now.Sub(server.LastSeen) > 24*35*time.Hour
 	})()
 
 	// ping at intervals
@@ -100,46 +93,31 @@ func GoBackgrounds() {
 			// stop the ping and wait for the register
 			return nil
 		}
-		var err error
-		defer func() {
-			if err != nil {
-				todo = func(b []byte) []byte {
-					var server model.Server
-					if err := jsoniter.Unmarshal(b, &server); err != nil {
-						return nil
-					}
-					server.FailureCount++
-					b, err := jsoniter.Marshal(server)
-					if err != nil {
-						return nil
-					}
-					return b
-				}
-			} else {
-				if server.SyncNextSeen {
-					todo = func(b []byte) []byte {
-						_ = service.SyncPassagesByServer(context.Background(), server.Ticket)
-						return nil
-					}
-				}
-			}
-		}()
-		mng, err := model.NewManager(model.ManageArgument{
-			Host:     server.Host,
-			Port:     strconv.Itoa(server.Port),
-			Argument: server.Argument,
-		})
-		if err != nil {
-			log.Warn("NewManager(%v): %v", server.Name, err)
-			return
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		if err = mng.Ping(ctx); err != nil {
-			log.Info("Ping: %v", err)
-			return
+		if err := service.Ping(ctx, server); err != nil {
+			log.Info("server %v: %v", strconv.Quote(server.Name), err)
+			todo = func(b []byte) []byte {
+				var server model.Server
+				if err := jsoniter.Unmarshal(b, &server); err != nil {
+					return nil
+				}
+				server.FailureCount++
+				b, err := jsoniter.Marshal(server)
+				if err != nil {
+					return nil
+				}
+				return b
+			}
+		} else {
+			if server.SyncNextSeen {
+				todo = func(b []byte) []byte {
+					_ = service.SyncPassagesByServer(context.Background(), server.Ticket)
+					return nil
+				}
+			}
 		}
-		return
+		return todo
 	})()
 }
 

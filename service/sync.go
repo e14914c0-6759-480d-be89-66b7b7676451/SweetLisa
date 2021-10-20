@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -174,4 +176,42 @@ var DefaultServerSyncBox = NewServerSyncBox()
 
 func init() {
 	go DefaultServerSyncBox.SyncBackground()
+}
+
+func SyncPassagesByServer(ctx context.Context, serverTicket string) (err error) {
+	DefaultServerSyncBox.ReqSync(ctx, serverTicket)
+	return nil
+}
+
+// SyncPassagesByChatIdentifier costs long time, thus tx here should be nil.
+func SyncPassagesByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier string) (err error) {
+	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier)
+	if err != nil {
+		return err
+	}
+	var wg sync.WaitGroup
+	var errs []string
+	for _, svr := range servers {
+		DefaultServerSyncBox.ReqSync(ctx, svr.Ticket)
+	}
+	wg.Wait()
+	if errs != nil {
+		return fmt.Errorf(strings.Join(errs, "\n"))
+	}
+	return nil
+}
+
+func Ping(ctx context.Context,server model.Server) error {
+	mng, err := model.NewManager(model.ManageArgument{
+		Host:     server.Host,
+		Port:     strconv.Itoa(server.Port),
+		Argument: server.Argument,
+	})
+	if err != nil {
+		return fmt.Errorf("NewManager(%v): %w", server.Name, err)
+	}
+	if err = mng.Ping(ctx); err != nil {
+		return fmt.Errorf("Ping: %w", err)
+	}
+	return nil
 }

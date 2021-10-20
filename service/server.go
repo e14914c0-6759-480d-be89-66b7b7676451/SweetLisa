@@ -77,7 +77,7 @@ func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (servers []m
 	return servers, nil
 }
 
-// RegisterServer registers a server
+// RegisterServer save the server in db
 func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 	server.FailureCount = 0
 	server.LastSeen = time.Now()
