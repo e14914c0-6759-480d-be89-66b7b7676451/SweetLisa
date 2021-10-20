@@ -111,11 +111,20 @@ func GoBackgrounds() {
 				return b
 			}
 		} else {
-			if server.SyncNextSeen {
-				todo = func(b []byte) []byte {
+			todo = func(b []byte) []byte {
+				if server.SyncNextSeen {
 					_ = service.SyncPassagesByServer(context.Background(), server.Ticket)
+				}
+				var server model.Server
+				if err := jsoniter.Unmarshal(b, &server); err != nil {
 					return nil
 				}
+				server.FailureCount = 0
+				b, err := jsoniter.Marshal(server)
+				if err != nil {
+					return nil
+				}
+				return b
 			}
 		}
 		return todo

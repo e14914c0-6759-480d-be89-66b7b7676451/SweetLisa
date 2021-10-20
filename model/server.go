@@ -38,7 +38,7 @@ type Server struct {
 	Host string
 	// Port is shared by management and proxy
 	Port int
-	// FailureCount is the count of failed ping
+	// FailureCount is the number of consecutive failed pings
 	FailureCount int
 	// LastSeen is the time of last succeed ping
 	LastSeen time.Time
