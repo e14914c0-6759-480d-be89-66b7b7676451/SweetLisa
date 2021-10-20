@@ -77,26 +77,25 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 				})
 			}
 			for _, relay := range relays {
-				for _, userTicket := range userTickets {
-					passages = append(passages, model.Passage{
-						In: model.In{
-							From:     relay.Name,
-							Argument: model.GetRelayUserArgument(serverTicket, relay.Ticket, userTicket),
-						},
-					})
-				}
+				passages = append(passages, model.Passage{
+					In: model.In{
+						From:     relay.Name,
+						Argument: model.GetUserArgument(serverTicket, relay.Ticket),
+					},
+				})
 			}
 		case model.TicketTypeRelay:
 			for _, svr := range servers {
+				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket)
 				for _, userTicket := range userTickets {
-					arg := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket)
+					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket)
 					passages = append(passages, model.Passage{
-						In: model.In{Argument: arg}, // TODO: other Protocols and arguments
+						In: model.In{Argument: argUserRelayServer},
 						Out: &model.Out{
 							To:       svr.Name,
 							Host:     svr.Host,
 							Port:     strconv.Itoa(svr.Port),
-							Argument: arg,
+							Argument: argRelayServer,
 						},
 					})
 				}

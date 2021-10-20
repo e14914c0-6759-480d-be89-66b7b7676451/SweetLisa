@@ -13,16 +13,16 @@ const (
 	MaxFailureCount = 10
 )
 
-type ProxyProtocol string
+type Protocol string
 
 const (
-	VMessTCP    ProxyProtocol = "vmess"
-	Shadowsocks               = "shadowsocks"
+	ProtocolVMessTCP    Protocol = "vmess"
+	ProtocolShadowsocks          = "shadowsocks"
 )
 
-func (p ProxyProtocol) Valid() bool {
+func (p Protocol) Valid() bool {
 	switch p {
-	case VMessTCP, Shadowsocks:
+	case ProtocolVMessTCP, ProtocolShadowsocks:
 		return true
 	default:
 		return false
@@ -54,7 +54,7 @@ func GetUserArgument(serverTicket, userTicket string) Argument {
 	h.Write([]byte(userTicket))
 	b := h.Sum(nil)
 	return Argument{
-		Protocol: Shadowsocks,
+		Protocol: ProtocolShadowsocks,
 		Password: common.Base62Encoder.Encode(b)[:21],
 		Method:   "chacha20-ietf-poly1305",
 	}
@@ -67,7 +67,7 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string) Argument
 	h.Write([]byte(userTicket))
 	b := h.Sum(nil)
 	return Argument{
-		Protocol: Shadowsocks,
+		Protocol: ProtocolShadowsocks,
 		Password: common.Base62Encoder.Encode(b)[:21],
 		Method:   "chacha20-ietf-poly1305",
 	}
@@ -75,7 +75,7 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string) Argument
 
 type Argument struct {
 	// Required
-	Protocol ProxyProtocol `json:",omitempty"`
+	Protocol Protocol `json:",omitempty"`
 	// Optional
 	Username string `json:",omitempty"`
 	// Required
