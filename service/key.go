@@ -8,9 +8,10 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
+	"strconv"
 )
 
-func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
+func GetPassagesByServer(tx *bolt.Tx, server model.Server) (passages []model.Passage) {
 	// server could be Server or Relay
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
@@ -24,7 +25,7 @@ func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 			return err
 		}
 		chatIdentifier := serverTicket.ChatIdentifier
-		// generate all user/relay keys in this chat
+		// generate all user/relay passages in this chat
 		var userTickets []string
 		var servers []model.Server
 		var relays []model.Server
@@ -48,7 +49,7 @@ func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 					svr, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
-							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
+							log.Warn("GetPassagesByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
 						}
 						return nil
 					}
@@ -59,7 +60,7 @@ func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 					relay, err := GetServerByTicket(tx, ticket.Ticket)
 					if err != nil {
 						if !errors.Is(err, db.ErrKeyNotFound) {
-							log.Warn("GetKeysByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
+							log.Warn("GetPassagesByServer: cannot get server by ticket: %v: %v", ticket.Ticket, err)
 						}
 						return nil
 					}
@@ -71,26 +72,32 @@ func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 		switch serverTicket.Type {
 		case model.TicketTypeServer:
 			for _, ticket := range userTickets {
-				keys = append(keys, model.Server{
-					Argument: server.GetUserArgument(ticket),
+				passages = append(passages, model.Passage{
+					In: model.In{Argument: server.GetUserArgument(ticket)},
 				})
 			}
 			for _, relay := range relays {
 				for _, userTicket := range userTickets {
-					keys = append(keys, model.Server{
-						Name:     relay.Name, // no actual meaning
-						Argument: relay.GetRelayUserArgument(userTicket, server),
+					passages = append(passages, model.Passage{
+						In: model.In{
+							From:     relay.Name,
+							Argument: relay.GetRelayUserArgument(userTicket, server),
+						},
 					})
 				}
 			}
 		case model.TicketTypeRelay:
 			for _, svr := range servers {
 				for _, userTicket := range userTickets {
-					keys = append(keys, model.Server{
-						Name:     svr.Name, // target server name to show
-						Host:     svr.Host, // forwarding sign
-						Port:     svr.Port,
-						Argument: server.GetRelayUserArgument(userTicket, svr),
+					arg := server.GetRelayUserArgument(userTicket, svr)
+					passages = append(passages, model.Passage{
+						In: model.In{Argument: arg}, // TODO: other Protocols and arguments
+						Out: &model.Out{
+							To:       svr.Name,
+							Host:     svr.Host,
+							Port:     strconv.Itoa(svr.Port),
+							Argument: arg,
+						},
 					})
 				}
 			}
@@ -99,8 +106,8 @@ func GetKeysByServer(tx *bolt.Tx, server model.Server) (keys []model.Server) {
 	}
 	if tx != nil {
 		f(tx)
-		return keys
+		return passages
 	}
 	db.DB().View(f)
-	return keys
+	return passages
 }

@@ -76,11 +76,11 @@ func (s *Server) GetRelayUserArgument(userTicket string, svr Server) Argument {
 
 type Argument struct {
 	// Required
-	Protocol ProxyProtocol
+	Protocol ProxyProtocol `json:",omitempty"`
 	// Optional
-	Username string
+	Username string `json:",omitempty"`
 	// Required
-	Password string
+	Password string `json:",omitempty"`
 	// Optional
-	Method string
+	Method string `json:",omitempty"`
 }

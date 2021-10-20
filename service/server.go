@@ -34,8 +34,7 @@ func GetServerByTicket(tx *bolt.Tx, ticket string) (server model.Server, err err
 	return server, nil
 }
 
-func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (keys []model.Server, err error) {
-	var servers []model.Server
+func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (servers []model.Server, err error) {
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {

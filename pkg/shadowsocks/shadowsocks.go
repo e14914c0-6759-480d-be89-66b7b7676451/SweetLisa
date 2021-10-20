@@ -76,17 +76,17 @@ func (s *Shadowsocks) Ping(ctx context.Context) (err error) {
 	return nil
 }
 
-func (s *Shadowsocks) SyncKeys(ctx context.Context, keys []model.Server) (err error) {
-	body, err := jsoniter.Marshal(keys)
+func (s *Shadowsocks) SyncPassages(ctx context.Context, passages []model.Passage) (err error) {
+	body, err := jsoniter.Marshal(passages)
 	if err != nil {
 		return err
 	}
-	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdSyncKeys}, body)
+	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdSyncPassages}, body)
 	if err != nil {
 		return err
 	}
 	if !bytes.Equal(resp, []byte("OK")) {
-		return fmt.Errorf("unexpected SyncKeys response from server: %v", string(resp))
+		return fmt.Errorf("unexpected SyncPassages response from server: %v", string(resp))
 	}
 	return nil
 }

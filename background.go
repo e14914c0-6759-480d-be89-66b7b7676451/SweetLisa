@@ -88,8 +88,8 @@ func GoBackgrounds() {
 			go func(chatIdentifier string) {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 				defer cancel()
-				if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-					log.Warn("sync keys: %v: chat: %v", err, chatIdentifier)
+				if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+					log.Warn("sync passages: %v: chat: %v", err, chatIdentifier)
 				}
 			}(ticObj.ChatIdentifier)
 		}
@@ -127,8 +127,8 @@ func GoBackgrounds() {
 						go func() {
 							ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 							defer cancel()
-							// Run SyncKeysByServer in a new coroutine to avoid nested transactions and deadlock
-							_ = service.SyncKeysByServer(nil, ctx, server)
+							// Run SyncPassagesByServer in a new coroutine to avoid nested transactions and deadlock
+							_ = service.SyncPassagesByServer(nil, ctx, server)
 						}()
 						return nil
 					}
@@ -167,7 +167,7 @@ func SyncAll() {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+			if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
 		}(chatIdentifier)

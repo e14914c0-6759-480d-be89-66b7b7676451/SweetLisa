@@ -35,8 +35,8 @@ func SetServerSyncNextSeenByTicket(wtx *bolt.Tx, ticket string, setTo bool) erro
 	return db.DB().Update(f)
 }
 
-// SyncKeysByServer costs long time, thus tx here should be nil.
-func SyncKeysByServer(wtx *bolt.Tx, ctx context.Context, server model.Server) (err error) {
+// SyncPassagesByServer costs long time, thus tx here should be nil.
+func SyncPassagesByServer(wtx *bolt.Tx, ctx context.Context, server model.Server) (err error) {
 	defer func() {
 		if err != nil && !server.SyncNextSeen {
 			_ = SetServerSyncNextSeenByTicket(wtx, server.Ticket, true)
@@ -45,7 +45,7 @@ func SyncKeysByServer(wtx *bolt.Tx, ctx context.Context, server model.Server) (e
 			_ = SetServerSyncNextSeenByTicket(wtx, server.Ticket, false)
 		}
 	}()
-	keys := GetKeysByServer(wtx, server)
+	passages := GetPassagesByServer(wtx, server)
 	mng, err := model.NewManager(model.ManageArgument{
 		Host:     server.Host,
 		Port:     strconv.Itoa(server.Port),
@@ -54,11 +54,11 @@ func SyncKeysByServer(wtx *bolt.Tx, ctx context.Context, server model.Server) (e
 	if err != nil {
 		return err
 	}
-	return mng.SyncKeys(ctx, keys)
+	return mng.SyncPassages(ctx, passages)
 }
 
-// SyncKeysByChatIdentifier costs long time, thus tx here should be nil.
-func SyncKeysByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier string) (err error) {
+// SyncPassagesByChatIdentifier costs long time, thus tx here should be nil.
+func SyncPassagesByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier string) (err error) {
 	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier)
 	if err != nil {
 		return err
@@ -67,10 +67,10 @@ func SyncKeysByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier 
 	var errs []string
 	var mu sync.Mutex
 	for _, svr := range servers {
-		keys := GetKeysByServer(wtx, svr)
+		passages := GetPassagesByServer(wtx, svr)
 		wg.Add(1)
-		go func(svr model.Server, keys []model.Server) {
-			log.Trace("SyncKeysByChatIdentifier: chat: %v, svr: %v, keys: %v", chatIdentifier, svr, keys)
+		go func(svr model.Server, passages []model.Passage) {
+			log.Trace("SyncPassagesByChatIdentifier: chat: %v, svr: %v, passages: %v", chatIdentifier, svr, passages)
 			defer wg.Done()
 			defer func() {
 				if err != nil && !svr.SyncNextSeen {
@@ -93,13 +93,13 @@ func SyncKeysByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier 
 			}
 			ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			defer cancel()
-			if err = mng.SyncKeys(ctx, keys); err != nil {
+			if err = mng.SyncPassages(ctx, passages); err != nil {
 				mu.Lock()
-				errs = append(errs, "SyncKeys: "+err.Error())
+				errs = append(errs, "SyncPassages: "+err.Error())
 				mu.Unlock()
 				return
 			}
-		}(svr, keys)
+		}(svr, passages)
 	}
 	wg.Wait()
 	if errs != nil {

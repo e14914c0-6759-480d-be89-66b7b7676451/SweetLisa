@@ -40,9 +40,9 @@ func GetTicket(c *gin.Context) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	// SyncKeysByChatIdentifier
-	if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-		common.ResponseError(c, fmt.Errorf("SyncKeysByChatIdentifier: %v", err))
+	// SyncPassagesByChatIdentifier
+	if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+		common.ResponseError(c, fmt.Errorf("SyncPassagesByChatIdentifier: %v", err))
 		return
 	}
 	common.ResponseSuccess(c, gin.H{
@@ -81,10 +81,10 @@ func PostRenew(c *gin.Context) {
 		return
 	}
 	if common.Expired(ticObj.ExpireAt) {
-		// SyncKeysByChatIdentifier
+		// SyncPassagesByChatIdentifier
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		if err := service.SyncKeysByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+		if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 			common.ResponseError(c, err)
 			return
 		}
