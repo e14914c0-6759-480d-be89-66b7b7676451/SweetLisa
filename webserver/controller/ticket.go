@@ -59,23 +59,22 @@ func PostRenew(c *gin.Context) {
 		common.ResponseBadRequestError(c)
 		return
 	}
-	chatIdentifier := c.Param("ChatIdentifier")
-	if err := service.Verified(nil, req.VerificationCode, chatIdentifier); err != nil {
-		common.ResponseError(c, err)
-		return
-	}
 	ticket := c.Param("Ticket")
-	// verify the ticket
 	ticObj, err := service.GetValidTicketObj(nil, ticket)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
 	}
-	if ticObj.Type != model.TicketTypeUser || ticObj.ChatIdentifier != chatIdentifier {
+	// verify the VerificationCode
+	if err := service.Verified(nil, req.VerificationCode, ticObj.ChatIdentifier); err != nil {
+		common.ResponseError(c, err)
+		return
+	}
+	if ticObj.Type != model.TicketTypeUser {
 		common.ResponseBadRequestError(c)
 		return
 	}
-	renewedTic, err := service.SaveTicket(nil, ticket, ticObj.Type, chatIdentifier)
+	renewedTic, err := service.SaveTicket(nil, ticket, ticObj.Type, ticObj.ChatIdentifier)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -84,7 +83,7 @@ func PostRenew(c *gin.Context) {
 		// SyncPassagesByChatIdentifier
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+		if err := service.SyncPassagesByChatIdentifier(nil, ctx, ticObj.ChatIdentifier); err != nil {
 			common.ResponseError(c, err)
 			return
 		}

@@ -20,11 +20,6 @@ func GetSubscription(c *gin.Context) {
 		common.ResponseError(c, err)
 		return
 	}
-	chatIdentifier := c.Param("ChatIdentifier")
-	if ticObj.ChatIdentifier != chatIdentifier {
-		common.ResponseBadRequestError(c)
-		return
-	}
 	switch ticObj.Type {
 	case model.TicketTypeUser, model.TicketTypeRelay:
 	default:
@@ -32,7 +27,7 @@ func GetSubscription(c *gin.Context) {
 		return
 	}
 	// get servers
-	servers, err := service.GetServersByChatIdentifier(nil, chatIdentifier)
+	servers, err := service.GetServersByChatIdentifier(nil, ticObj.ChatIdentifier)
 	if err != nil {
 		common.ResponseError(c, err)
 		return

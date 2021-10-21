@@ -32,11 +32,6 @@ func PostRegister(c *gin.Context) {
 		common.ResponseError(c, err)
 		return
 	}
-	chatIdentifier := c.Param("ChatIdentifier")
-	if ticObj.ChatIdentifier != chatIdentifier {
-		common.ResponseBadRequestError(c)
-		return
-	}
 	switch ticObj.Type {
 	case model.TicketTypeServer, model.TicketTypeRelay:
 	default:
@@ -62,8 +57,8 @@ func PostRegister(c *gin.Context) {
 		if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 			return
 		}
-	}(req, chatIdentifier)
-	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", c.ClientIP(), req.Name, chatIdentifier, ticObj.Type)
+	}(req, ticObj.ChatIdentifier)
+	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", c.ClientIP(), req.Name, ticObj.ChatIdentifier, ticObj.Type)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
 	log.Trace("register: %v", passages)
 	common.ResponseSuccess(c, passages)
