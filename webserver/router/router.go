@@ -51,15 +51,15 @@ func Run(f embed.FS) error {
 		})
 		return nil
 	})
-	api := engine.Group("/api/:ChatIdentifier")
+	api := engine.Group("api")
 
-	chat := api.Group(":ChatIdentifier")
+	chat := api.Group("chat/:ChatIdentifier")
 	{
 		chat.GET("ticket", controller.GetTicket)
 		chat.GET("verification", controller.GetVerification)
 	}
 
-	ticket := api.Group(":Ticket")
+	ticket := api.Group("ticket/:Ticket")
 	{
 		ticket.GET("sub", controller.GetSubscription)
 		ticket.POST("register", controller.PostRegister)

@@ -143,13 +143,13 @@ func SyncAll() {
 				// For the relay, we should confirm it is reachable before registering.
 				if serverTicket.Type == model.TicketTypeRelay {
 					chatWg.Add(1)
-					go func(ctx context.Context,relay model.Server, chatIdentifier string) {
+					go func(ctx context.Context, relay model.Server, chatIdentifier string) {
 						defer chatWg.Done()
 						// ping test
 						defer cancel()
 						if err := service.Ping(ctx, relay); err != nil {
 							err = fmt.Errorf("unreachable: %w", err)
-							log.Warn("failed to register: %v", err)
+							log.Warn("failed to register %v: %v", relay.Name, err)
 							return
 						}
 						// register

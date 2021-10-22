@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	bitterJohnConfig "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/config"
+	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
 	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -17,18 +17,16 @@ func init() {
 	model.Register("shadowsocks", New)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
-	conf := config.GetConfig()
+	params := *config.GetConfig()
 	var logFile string
-	if conf.LogFile != "" {
+	if params.LogFile != "" {
 		logFile += ".bitterJohn"
 	}
-	bitterJohnConfig.SetConfig(bitterJohnConfig.Params{
-		LogFile:             logFile,
-		LogLevel:            conf.LogLevel,
-		LogDisableColor:     conf.LogDisableColor,
-		LogDisableTimestamp: conf.LogDisableTimestamp,
-	})
-	bitterJohnConfig.GetConfig()
+	logWay := "console"
+	if params.LogFile != "" {
+		logWay = "file"
+	}
+	johnLog.InitLog(logWay, params.LogFile, params.LogLevel, params.LogMaxDays, params.LogDisableColor, params.LogDisableTimestamp)
 }
 
 type Shadowsocks struct {
@@ -53,11 +51,12 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 	crw, err := ss.NewSSConn(conn, s.cipherConf, s.masterKey)
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
+	defer crw.Close()
 	go func() {
 		<-ctx.Done()
 		crw.SetDeadline(time.Now())

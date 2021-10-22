@@ -45,9 +45,10 @@ func PostRegister(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		// ping test
+		log.Trace("ping %v use %v", req.Name, req.Argument)
 		if err := service.Ping(ctx, req); err != nil {
 			err = fmt.Errorf("unreachable: %w", err)
-			log.Warn("failed to register: %v", err)
+			log.Warn("reject to register %v: %v", req.Name, err)
 			return
 		}
 		// register
@@ -58,7 +59,7 @@ func PostRegister(c *gin.Context) {
 			return
 		}
 	}(req, ticObj.ChatIdentifier)
-	log.Info("Received a register request from %v: Chat: %v, Name: %v, Type: %v", c.ClientIP(), req.Name, ticObj.ChatIdentifier, ticObj.Type)
+	log.Info("Received a register request from %v: Chat: %v, Type: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
 	log.Trace("register: %v", passages)
 	common.ResponseSuccess(c, passages)

@@ -48,7 +48,7 @@
 
     async function activateModal(action) {
         let VerificationCode = 'loading...';
-        await fetch(`/api/${ChatIdentifier}/verification`)
+        await fetch(`/api/chat/${ChatIdentifier}/verification`)
             .then(resp => resp.json())
             .then(resp => {
                 if (resp.Code !== "SUCCESS") {
@@ -122,7 +122,7 @@
             let strType = modalEl.querySelector('input[name="ticketType"]:checked').value;
             let Type = TypeMapper[strType];
             if (action === 'Register') {
-                fetch(`/api/${ChatIdentifier}/ticket?VerificationCode=${VerificationCode}&Type=${Type}`, {
+                fetch(`/api/chat/${ChatIdentifier}/ticket?VerificationCode=${VerificationCode}&Type=${Type}`, {
                     method: 'GET'
                 }).then((resp) => {
                     return resp.json();
@@ -152,7 +152,7 @@
                         </div>
                         ${strType === 'user' ? `
                         <div class="mui-textfield mui-textfield--float-label">
-                            <input class="easy-selectable" type="text" value="${location.origin}/api/${resp.Data.Ticket.Ticket}/sub" readonly="readonly">
+                            <input class="easy-selectable" type="text" value="${location.origin}/api/ticket/${resp.Data.Ticket.Ticket}/sub" readonly="readonly">
                             <label>Subscription Link</label>
                         </div>
                         ` : ''}
@@ -165,7 +165,7 @@
             } else if (action === 'Renew') {
                 console.log("?")
                 let Ticket = modalEl.querySelector('#ticket').value;
-                fetch(`/api/${Ticket}/renew`, {
+                fetch(`/api/ticket/${Ticket}/renew`, {
                     method: 'POST',
                     mode: 'same-origin',
                     headers: {
