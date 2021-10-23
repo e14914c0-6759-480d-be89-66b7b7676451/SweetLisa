@@ -47,6 +47,10 @@ func initFunc() {
 	if err != nil {
 		log2.Fatal(err)
 	}
+	params.LogFile, err = common.HomeExpand(params.LogFile)
+	if err != nil {
+		log2.Fatal(err)
+	}
 	if strings.Contains(params.Config, "$HOME") {
 		if h, err := os.UserHomeDir(); err == nil {
 			params.Config = strings.ReplaceAll(params.Config, "$HOME", h)
