@@ -127,12 +127,7 @@ func (b *ServerSyncBox) SyncBackground() {
 						Argument: svr.Argument,
 					})
 					if err != nil {
-						switch {
-						case strings.Contains(err.Error(), "operation was canceled"):
-							// pass
-						default:
-							log.Info("SyncBackground (%v): %v", svr.Name, err)
-						}
+						log.Info("SyncBackground: %v: %v", svr.Name, err)
 						return
 					}
 					defer func() {
@@ -146,7 +141,12 @@ func (b *ServerSyncBox) SyncBackground() {
 					defer subCancel()
 					passages := GetPassagesByServer(nil, svr.Ticket)
 					if err = mng.SyncPassages(subCtx, passages); err != nil {
-						log.Info("SyncBackground: %v: %v", svr.Name, err)
+						switch {
+						case strings.Contains(err.Error(), "operation was canceled"):
+							// pass
+						default:
+							log.Info("SyncBackground (%v): %v", svr.Name, err)
+						}
 						return
 					}
 				}(ctx, cancel, ticket)
