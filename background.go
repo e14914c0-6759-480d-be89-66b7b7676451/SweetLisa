@@ -72,11 +72,10 @@ func GoBackgrounds() {
 			return false, nil
 		}
 		if err := jsoniter.Unmarshal(bkt.Get([]byte(server.Ticket)), &ticObj); err != nil {
-			log.Warn("remove expired server (%v) ticket (%v) fail: %v", server.Name, server.Ticket, err)
 			return false, nil
 		}
 		if now.Sub(server.LastSeen) >= 10*time.Minute {
-			log.Info("remove relay %v because of long time no see", server.Name)
+			log.Info("remove server %v (type: %v) because of long time no see", server.Name, ticObj.Type)
 			return true, []string{ticObj.ChatIdentifier}
 		}
 		return false, nil
