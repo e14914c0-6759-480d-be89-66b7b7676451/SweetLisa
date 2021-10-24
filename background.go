@@ -75,19 +75,9 @@ func GoBackgrounds() {
 			log.Warn("remove expired server (%v) ticket (%v) fail: %v", server.Name, server.Ticket, err)
 			return false, nil
 		}
-		// Relay is a server and also a client.
-		// We should remove its keys immediately once it loses connection to avoid abusing.
-		switch ticObj.Type {
-		case model.TicketTypeRelay:
-			if now.Sub(server.LastSeen) >= 10*time.Minute {
-				log.Info("remove relay %v because of long time no see", server.Name)
-				return true, []string{ticObj.ChatIdentifier}
-			}
-		case model.TicketTypeServer:
-			if now.Sub(server.LastSeen) >= 35*24*time.Hour {
-				log.Info("remove server %v because of long time no see", server.Name)
-				return true, []string{ticObj.ChatIdentifier}
-			}
+		if now.Sub(server.LastSeen) >= 10*time.Minute {
+			log.Info("remove relay %v because of long time no see", server.Name)
+			return true, []string{ticObj.ChatIdentifier}
 		}
 		return false, nil
 	})()
@@ -105,7 +95,7 @@ func GoBackgrounds() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		if err := service.Ping(ctx, server); err != nil {
-			log.Info("server %v: %v", strconv.Quote(server.Name), err)
+			log.Info("Ping server %v: %v", strconv.Quote(server.Name), err)
 			todo = func(b []byte) []byte {
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
