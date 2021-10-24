@@ -146,7 +146,6 @@ func SyncAll() {
 					go func(ctx context.Context, relay model.Server, chatIdentifier string) {
 						defer chatWg.Done()
 						// ping test
-						defer cancel()
 						if err := service.Ping(ctx, relay); err != nil {
 							err = fmt.Errorf("unreachable: %w", err)
 							log.Warn("failed to register %v: %v", relay.Name, err)

@@ -136,10 +136,11 @@ func (b *ServerSyncBox) SyncBackground() {
 						return
 					}
 					defer func() {
-						if err != nil {
-							log.Info("Retry the sync after seeing the server %v next time", svr.Name)
+						failed := err != nil && !strings.Contains(err.Error(), "operation was canceled")
+						if failed {
+							log.Info("Retry the sync after seeing the server %v next time: %v", svr.Name, err.Error())
 						}
-						_ = setSyncNextSeen(ticket, err != nil)
+						_ = setSyncNextSeen(ticket, failed)
 					}()
 					subCtx, subCancel := context.WithTimeout(ctx, 15*time.Second)
 					defer subCancel()
