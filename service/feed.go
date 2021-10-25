@@ -18,8 +18,8 @@ import (
 type ServerAction string
 
 const (
-	ServerActionLaunch  ServerAction = "Launch"
-	ServerActionOffline              = "Offline"
+	ServerActionLaunch  ServerAction = "🚀 Launch"
+	ServerActionOffline              = "💥 Offline"
 )
 
 type FeedFormat int
