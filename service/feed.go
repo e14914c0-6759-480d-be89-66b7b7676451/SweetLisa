@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/feeds"
 	"net/url"
 	"path"
+	"sort"
 	"time"
 )
 
@@ -21,7 +22,15 @@ const (
 	ServerActionOffline              = "Offline"
 )
 
-func GetChatFeedRSS(tx *bolt.Tx, chatIdentifier string) (string, error) {
+type FeedFormat int
+
+const (
+	FeedFormatRSS FeedFormat = iota
+	FeedFormatAtom
+	FeedFormatJSON
+)
+
+func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat) (string, error) {
 	var feedItems []*feeds.Item
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketFeed))
@@ -62,7 +71,16 @@ func GetChatFeedRSS(tx *bolt.Tx, chatIdentifier string) (string, error) {
 		Created:     now,
 		Items:       feedItems,
 	}
-	return feed.ToRss()
+	switch format {
+	case FeedFormatRSS:
+		return feed.ToRss()
+	case FeedFormatAtom:
+		return feed.ToAtom()
+	case FeedFormatJSON:
+		return feed.ToJSON()
+	default:
+		return "", fmt.Errorf("unexpected format: %v", format)
+	}
 }
 
 func AddFeed(wtx *bolt.Tx, chatIdentifier string, item feeds.Item) error {
@@ -80,7 +98,10 @@ func AddFeed(wtx *bolt.Tx, chatIdentifier string, item feeds.Item) error {
 		} else {
 			chatFeedObj.ChatIdentifier = chatIdentifier
 		}
-		chatFeedObj.Feeds = append(chatFeedObj.Feeds, &item)
+		chatFeedObj.Feeds = append([]*feeds.Item{&item}, chatFeedObj.Feeds...)
+		sort.SliceStable(chatFeedObj.Feeds, func(i, j int) bool {
+			return chatFeedObj.Feeds[i].Created.After(chatFeedObj.Feeds[j].Created)
+		})
 		var buf bytes.Buffer
 		err = gob.NewEncoder(&buf).Encode(&chatFeedObj)
 		if err != nil {

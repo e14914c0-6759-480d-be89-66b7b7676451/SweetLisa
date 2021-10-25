@@ -41,25 +41,28 @@ func PostRegister(c *gin.Context) {
 	go func(req model.Server, chatIdentifier string) {
 		// waiting for the starting of BitterJohn
 		time.Sleep(5 * time.Second)
+		var err error
 
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		defer func() {
 			if err != nil {
 				log.Warn("reject to register %v: %v", req.Name, err)
+			}else{
+				log.Info("register %v successfully", req.Name)
 			}
 		}()
 		// ping test
 		log.Trace("ping %v use %v", req.Name, req.Argument)
-		if err := service.Ping(ctx, req); err != nil {
+		if err = service.Ping(ctx, req); err != nil {
 			err = fmt.Errorf("unreachable: %w", err)
 			return
 		}
 		// register
-		if err := service.RegisterServer(nil, req); err != nil {
+		if err = service.RegisterServer(nil, req); err != nil {
 			return
 		}
-		if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+		if err = service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
 			return
 		}
 	}(req, ticObj.ChatIdentifier)

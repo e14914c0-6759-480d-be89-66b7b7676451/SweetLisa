@@ -29,10 +29,9 @@ func Run(f embed.FS) error {
 	engine.Use(gin.Recovery())
 	engine.GET("/chat/:ChatIdentifier", func(c *gin.Context) {
 		chatIdentifier := c.Param("ChatIdentifier")
-		switch path.Ext(chatIdentifier) {
-		case ".rss":
-			controller.GetChatRSS(c)
-		default:
+		if len(path.Ext(chatIdentifier)) > 1 {
+			controller.GetChat(c)
+		} else {
 			c.HTML(http.StatusOK, "index.tmpl", gin.H{
 				"ChatIdentifier": c.Param("ChatIdentifier"),
 			})
