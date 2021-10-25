@@ -46,6 +46,39 @@
 <script>
     const ChatIdentifier = {{- .ChatIdentifier -}};
 
+    function showLinkModel(ticket){
+        let modalEl = document.createElement('div');
+        modalEl.style.width = '60%';
+        modalEl.style.minWidth = '300px';
+        modalEl.style.maxWidth = '500px';
+        modalEl.style.height = 'min-content';
+        modalEl.style.margin = 'auto auto';
+        modalEl.style.position = 'absolute';
+        modalEl.style.left = '0';
+        modalEl.style.right = '0';
+        modalEl.style.top = '0';
+        modalEl.style.bottom = '0';
+        modalEl.style.backgroundColor = '#fff';
+        modalEl.style.color = '#000';
+        modalEl.innerHTML = `
+                    <div class="mui-container modal">
+                        <div class="mui-textfield mui-textfield--float-label">
+                            <input class="easy-selectable" type="text" value="${ticket}" readonly="readonly">
+                            <label>Ticket</label>
+                        </div>
+                        ${strType === 'user' ? `
+                        <div class="mui-textfield mui-textfield--float-label">
+                            <input class="easy-selectable" type="text" value="${location.origin}/api/ticket/${ticket}/sub" readonly="readonly">
+                            <label>Subscription Link</label>
+                        </div>
+                        ` : ''}
+                    </div>
+                    `
+        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
+        // show modal
+        mui.overlay('on', modalEl);
+    }
+
     async function activateModal(action) {
         let VerificationCode = 'loading...';
         await fetch(`/api/chat/${ChatIdentifier}/verification`)
@@ -131,36 +164,7 @@
                         alert(resp.Message);
                         return;
                     }
-                    let modalEl = document.createElement('div');
-                    modalEl.style.width = '60%';
-                    modalEl.style.minWidth = '300px';
-                    modalEl.style.maxWidth = '500px';
-                    modalEl.style.height = 'min-content';
-                    modalEl.style.margin = 'auto auto';
-                    modalEl.style.position = 'absolute';
-                    modalEl.style.left = '0';
-                    modalEl.style.right = '0';
-                    modalEl.style.top = '0';
-                    modalEl.style.bottom = '0';
-                    modalEl.style.backgroundColor = '#fff';
-                    modalEl.style.color = '#000';
-                    modalEl.innerHTML = `
-                    <div class="mui-container modal">
-                        <div class="mui-textfield mui-textfield--float-label">
-                            <input class="easy-selectable" type="text" value="${resp.Data.Ticket.Ticket}" readonly="readonly">
-                            <label>Ticket</label>
-                        </div>
-                        ${strType === 'user' ? `
-                        <div class="mui-textfield mui-textfield--float-label">
-                            <input class="easy-selectable" type="text" value="${location.origin}/api/ticket/${resp.Data.Ticket.Ticket}/sub" readonly="readonly">
-                            <label>Subscription Link</label>
-                        </div>
-                        ` : ''}
-                    </div>
-                    `
-                    Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
-                    // show modal
-                    mui.overlay('on', modalEl);
+                    showLinkModel(resp.Data.Ticket.Ticket);
                 })
             } else if (action === 'Renew') {
                 console.log("?")
@@ -181,6 +185,7 @@
                         alert(resp.Message);
                         return;
                     }
+                    showLinkModel(Ticket);
                     alert(`Succeeded. Your ticket will expire at: ${new Date(resp.Data.ExpireAt).toLocaleString()}`);
                 })
             } else {
