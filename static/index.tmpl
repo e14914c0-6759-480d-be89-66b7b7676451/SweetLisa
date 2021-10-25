@@ -46,7 +46,7 @@
 <script>
     const ChatIdentifier = {{- .ChatIdentifier -}};
 
-    function showLinkModel(ticket){
+    function showLinkModel(ticket, showSubscription = false) {
         let modalEl = document.createElement('div');
         modalEl.style.width = '60%';
         modalEl.style.minWidth = '300px';
@@ -66,7 +66,7 @@
                             <input class="easy-selectable" type="text" value="${ticket}" readonly="readonly">
                             <label>Ticket</label>
                         </div>
-                        ${strType === 'user' ? `
+                        ${showSubscription ? `
                         <div class="mui-textfield mui-textfield--float-label">
                             <input class="easy-selectable" type="text" value="${location.origin}/api/ticket/${ticket}/sub" readonly="readonly">
                             <label>Subscription Link</label>
@@ -164,10 +164,9 @@
                         alert(resp.Message);
                         return;
                     }
-                    showLinkModel(resp.Data.Ticket.Ticket);
+                    showLinkModel(resp.Data.Ticket.Ticket, strType === 'user');
                 })
             } else if (action === 'Renew') {
-                console.log("?")
                 let Ticket = modalEl.querySelector('#ticket').value;
                 fetch(`/api/ticket/${Ticket}/renew`, {
                     method: 'POST',
@@ -185,7 +184,7 @@
                         alert(resp.Message);
                         return;
                     }
-                    showLinkModel(Ticket);
+                    showLinkModel(Ticket, strType === 'user');
                     alert(`Succeeded. Your ticket will expire at: ${new Date(resp.Data.ExpireAt).toLocaleString()}`);
                 })
             } else {
