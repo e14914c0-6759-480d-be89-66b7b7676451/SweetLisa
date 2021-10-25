@@ -43,12 +43,12 @@ func PostRegister(c *gin.Context) {
 		time.Sleep(5 * time.Second)
 		var err error
 
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		defer func() {
 			if err != nil {
 				log.Warn("reject to register %v: %v", req.Name, err)
-			}else{
+			} else {
 				log.Info("register %v successfully", req.Name)
 			}
 		}()
@@ -62,8 +62,10 @@ func PostRegister(c *gin.Context) {
 		if err = service.RegisterServer(nil, req); err != nil {
 			return
 		}
-		if err = service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-			return
+		if ticObj.Type == model.TicketTypeRelay {
+			if err = service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, false); err != nil {
+				return
+			}
 		}
 	}(req, ticObj.ChatIdentifier)
 	log.Info("Received a register request from %v: Chat: %v, Type: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type)

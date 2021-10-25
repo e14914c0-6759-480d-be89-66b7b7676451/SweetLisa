@@ -27,7 +27,7 @@ func GetSubscription(c *gin.Context) {
 		return
 	}
 	// get servers
-	servers, err := service.GetServersByChatIdentifier(nil, ticObj.ChatIdentifier)
+	servers, err := service.GetServersByChatIdentifier(nil, ticObj.ChatIdentifier, true)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
@@ -76,8 +76,11 @@ func GetSubscription(c *gin.Context) {
 			Method:     arg.Method,
 		})
 	}
-	for _, svr := range svrs {
-		for _, relay := range relays {
+	sort.Slice(relays, func(i, j int) bool {
+		return relays[i].Name < relays[j].Name
+	})
+	for _, relay := range relays {
+		for _, svr := range svrs {
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
 			sip008.Servers = append(sip008.Servers, model.SIP008Server{
 				Id:         common.StringToUUID5(arg.Password),

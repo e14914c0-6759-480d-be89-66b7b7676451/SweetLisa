@@ -34,7 +34,7 @@ func GetServerByTicket(tx *bolt.Tx, ticket string) (server model.Server, err err
 	return server, nil
 }
 
-func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (servers []model.Server, err error) {
+func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string, includeRelay bool) (servers []model.Server, err error) {
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
@@ -56,6 +56,9 @@ func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string) (servers []m
 			}
 			switch tic.Type {
 			case model.TicketTypeServer, model.TicketTypeRelay:
+				if tic.Type == model.TicketTypeRelay && !includeRelay {
+					return nil
+				}
 			default:
 				return nil
 			}

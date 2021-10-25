@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
@@ -24,7 +25,7 @@ const ServerSyncBoxCleanTimeout = 6 * time.Hour
 
 type ServerSyncBox struct {
 	waitingSync chan struct{}
-	box         map[string]chan context.Context
+	box         map[string]chan struct{}
 	lastSync    map[string]time.Time
 	syncCancel  map[string]func()
 	mu          sync.Mutex
@@ -34,25 +35,28 @@ type ServerSyncBox struct {
 func NewServerSyncBox() *ServerSyncBox {
 	return &ServerSyncBox{
 		waitingSync: make(chan struct{}, 1),
-		box:         make(map[string]chan context.Context),
+		box:         make(map[string]chan struct{}),
 		lastSync:    make(map[string]time.Time),
 		syncCancel:  make(map[string]func()),
 	}
 }
 
-func (b *ServerSyncBox) ReqSync(ctx context.Context, serverTicket string) {
+func (b *ServerSyncBox) ReqSync(serverTicket string) {
+	log.Trace("ReqSync: tic: %v", serverTicket)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if cancel, ok := b.syncCancel[serverTicket]; ok {
 		cancel()
+		delete(b.syncCancel, serverTicket)
 	}
 
 	box, ok := b.box[serverTicket]
 	if !ok {
-		b.box[serverTicket] = make(chan context.Context, 1)
+		b.box[serverTicket] = make(chan struct{}, 1)
+		box = b.box[serverTicket]
 	}
 	select {
-	case box <- ctx:
+	case box <- struct{}{}:
 	default:
 	}
 
@@ -101,10 +105,11 @@ func (b *ServerSyncBox) SyncBackground() {
 	var wg sync.WaitGroup
 	for range b.waitingSync {
 		b.mu.Lock()
+		log.Trace("Sync Scan")
 		for ticket, ch := range b.box {
 			select {
-			case ctx := <-ch:
-				ctx, cancel := context.WithCancel(ctx)
+			case <-ch:
+				ctx, cancel := context.WithCancel(context.Background())
 				b.syncCancel[ticket] = cancel
 				b.lastSync[ticket] = time.Now()
 				wg.Add(1)
@@ -127,6 +132,7 @@ func (b *ServerSyncBox) SyncBackground() {
 						log.Info("SyncBackground: GetServerByTicket: %v", err)
 						return
 					}
+					log.Trace("Sync: tic: %v: %v", ticket, svr.Name)
 					mng, err := manager.NewManager(ChooseDialer(svr), manager.ManageArgument{
 						Host:     svr.Host,
 						Port:     strconv.Itoa(svr.Port),
@@ -137,7 +143,7 @@ func (b *ServerSyncBox) SyncBackground() {
 						return
 					}
 					defer func() {
-						failed := err != nil && !strings.Contains(err.Error(), "operation was canceled")
+						failed := err != nil && !common.IsCanceled(err)
 						if failed {
 							log.Info("Retry the sync after seeing the server %v next time: %v", svr.Name, err.Error())
 						}
@@ -148,8 +154,9 @@ func (b *ServerSyncBox) SyncBackground() {
 					passages := GetPassagesByServer(nil, svr.Ticket)
 					if err = mng.SyncPassages(subCtx, passages); err != nil {
 						switch {
-						case strings.Contains(err.Error(), "operation was canceled"):
+						case common.IsCanceled(err):
 							// pass
+							log.Trace("SyncBackground: cancel: %v",err)
 						default:
 							log.Info("SyncBackground (%v): %v", svr.Name, err)
 						}
@@ -162,6 +169,7 @@ func (b *ServerSyncBox) SyncBackground() {
 		}
 		b.mu.Unlock()
 		wg.Wait()
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -194,21 +202,21 @@ func init() {
 	go DefaultServerSyncBox.SyncBackground()
 }
 
-func SyncPassagesByServer(ctx context.Context, serverTicket string) (err error) {
-	DefaultServerSyncBox.ReqSync(ctx, serverTicket)
+func SyncPassagesByServer(serverTicket string) (err error) {
+	DefaultServerSyncBox.ReqSync(serverTicket)
 	return nil
 }
 
-// SyncPassagesByChatIdentifier costs long time, thus tx here should be nil.
-func SyncPassagesByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentifier string) (err error) {
-	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier)
+// ReqSyncPassagesByChatIdentifier costs long time, thus tx here should be nil.
+func ReqSyncPassagesByChatIdentifier(wtx *bolt.Tx, chatIdentifier string, includeRelay bool) (err error) {
+	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier, includeRelay)
 	if err != nil {
 		return err
 	}
 	var wg sync.WaitGroup
 	var errs []string
 	for _, svr := range servers {
-		DefaultServerSyncBox.ReqSync(ctx, svr.Ticket)
+		DefaultServerSyncBox.ReqSync(svr.Ticket)
 	}
 	wg.Wait()
 	if errs != nil {

@@ -188,7 +188,7 @@ func HomeExpand(path string) (string, error) {
 }
 
 func Expired(expireAt time.Time) bool {
-	if expireAt.IsZero(){
+	if expireAt.IsZero() {
 		return false
 	}
 	return expireAt.Before(time.Now())
@@ -214,4 +214,9 @@ func StringToUUID5(str string) string {
 	buf[23] = '-'
 	hex.Encode(buf[24:], u[10:])
 	return string(buf)
+}
+
+func IsCanceled(err error) bool {
+	return strings.Contains(err.Error(), "operation was canceled") ||
+		strings.Contains(err.Error(), "context canceled")
 }

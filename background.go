@@ -111,7 +111,7 @@ func GoBackgrounds() {
 		} else {
 			todo = func(b []byte) []byte {
 				if server.SyncNextSeen {
-					_ = service.SyncPassagesByServer(context.Background(), server.Ticket)
+					_ = service.SyncPassagesByServer(server.Ticket)
 				}
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
@@ -164,7 +164,7 @@ func SyncAll() {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			servers, _ := service.GetServersByChatIdentifier(nil, chatIdentifier)
+			servers, _ := service.GetServersByChatIdentifier(nil, chatIdentifier, true)
 			var chatWg sync.WaitGroup
 			// For each chat, sync servers in the chat concurrently.
 			for _, server := range servers {
@@ -192,7 +192,7 @@ func SyncAll() {
 				}
 			}
 			chatWg.Wait()
-			if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
+			if err := service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, true); err != nil {
 				log.Warn("SyncAll: %v", err)
 			}
 			log.Info("SyncAll for chat %v has finished", chatIdentifier)
@@ -228,14 +228,10 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx
 					}
 				}
 				chatToSync = common.Deduplicate(chatToSync)
-				for _, chat := range chatToSync {
-					go func(chatIdentifier string) {
-						ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-						defer cancel()
-						if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-							log.Warn("sync passages: %v: chat: %v", err, chatIdentifier)
-						}
-					}(chat)
+				for _, chatIdentifier := range chatToSync {
+					if err := service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, true); err != nil {
+						log.Warn("sync passages: %v: chat: %v", err, chatIdentifier)
+					}
 				}
 				return nil
 			}); err != nil {

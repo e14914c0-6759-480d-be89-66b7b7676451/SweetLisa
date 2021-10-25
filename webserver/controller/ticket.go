@@ -1,14 +1,12 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
 	gonanoid "github.com/matoous/go-nanoid"
-	"time"
 )
 
 // GetTicket will add a ticket to database
@@ -38,11 +36,9 @@ func GetTicket(c *gin.Context) {
 		common.ResponseError(c, err)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	// SyncPassagesByChatIdentifier
-	if err := service.SyncPassagesByChatIdentifier(nil, ctx, chatIdentifier); err != nil {
-		common.ResponseError(c, fmt.Errorf("SyncPassagesByChatIdentifier: %v", err))
+	// ReqSyncPassagesByChatIdentifier
+	if err := service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, true); err != nil {
+		common.ResponseError(c, fmt.Errorf("ReqSyncPassagesByChatIdentifier: %v", err))
 		return
 	}
 	common.ResponseSuccess(c, gin.H{
@@ -80,10 +76,8 @@ func PostRenew(c *gin.Context) {
 		return
 	}
 	if common.Expired(ticObj.ExpireAt) {
-		// SyncPassagesByChatIdentifier
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		if err := service.SyncPassagesByChatIdentifier(nil, ctx, ticObj.ChatIdentifier); err != nil {
+		// ReqSyncPassagesByChatIdentifier
+		if err := service.ReqSyncPassagesByChatIdentifier(nil, ticObj.ChatIdentifier, true); err != nil {
 			common.ResponseError(c, err)
 			return
 		}
