@@ -15,6 +15,7 @@ import (
 type Params struct {
 	Address             string `id:"address" short:"a" default:"0.0.0.0:14914" desc:"Listening address"`
 	Config              string `id:"config" short:"c" default:"$HOME/.config/sweetlisa" desc:"SweetLisa configuration directory"`
+	CNProxy             string `id:"cn-proxy" desc:"The https proxy for sweetlisa to connect to the servers and relays in China"`
 	BotToken            string `id:"bot-token"`
 	Host                string `id:"host" default:"example.org"`
 	LogLevel            string `id:"log-level" default:"info" desc:"Optional values: trace, debug, info, warn or error"`

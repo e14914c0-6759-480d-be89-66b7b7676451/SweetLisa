@@ -68,6 +68,5 @@ func PostRegister(c *gin.Context) {
 	}(req, ticObj.ChatIdentifier)
 	log.Info("Received a register request from %v: Chat: %v, Type: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
-	log.Trace("register: %v", passages)
 	common.ResponseSuccess(c, passages)
 }

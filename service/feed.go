@@ -63,6 +63,9 @@ func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat) (string,
 		Host:   config.GetConfig().Host,
 		Path:   path.Join("chat", chatIdentifier),
 	}
+	sort.SliceStable(feedItems, func(i, j int) bool {
+		return feedItems[i].Created.After(feedItems[j].Created)
+	})
 	feed := feeds.Feed{
 		Title:       "Republic of Developers Airline (aka RDA)",
 		Link:        &feeds.Link{Href: chatLink.String()},
@@ -135,11 +138,10 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 		typ = "Relay Server"
 	}
 	return AddFeed(wtx, tic.ChatIdentifier, feeds.Item{
-		Title: fmt.Sprintf("Servers Changed"),
+		Title: fmt.Sprintf("%v (%v): %v", action, typ, server.Name),
 		Link: &feeds.Link{
 			Href: "",
 		},
-		Description: fmt.Sprintf("%v (%v): %v", action, typ, server.Name),
 		Created:     time.Now(),
 	})
 }

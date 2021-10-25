@@ -4,10 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/ipip"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
+	"golang.org/x/net/proxy"
+	"net"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -121,7 +127,7 @@ func (b *ServerSyncBox) SyncBackground() {
 						log.Info("SyncBackground: GetServerByTicket: %v", err)
 						return
 					}
-					mng, err := model.NewManager(model.ManageArgument{
+					mng, err := manager.NewManager(ChooseDialer(svr), manager.ManageArgument{
 						Host:     svr.Host,
 						Port:     strconv.Itoa(svr.Port),
 						Argument: svr.Argument,
@@ -212,7 +218,7 @@ func SyncPassagesByChatIdentifier(wtx *bolt.Tx, ctx context.Context, chatIdentif
 }
 
 func Ping(ctx context.Context, server model.Server) error {
-	mng, err := model.NewManager(model.ManageArgument{
+	mng, err := manager.NewManager(ChooseDialer(server), manager.ManageArgument{
 		Host:     server.Host,
 		Port:     strconv.Itoa(server.Port),
 		Argument: server.Argument,
@@ -224,4 +230,32 @@ func Ping(ctx context.Context, server model.Server) error {
 		return fmt.Errorf("Ping: %w", err)
 	}
 	return nil
+}
+
+// ChooseDialer choose CNProxy dialer for servers in China, and net.Dialer for others
+func ChooseDialer(server model.Server) manager.Dialer {
+	if cnProxy := config.GetConfig().CNProxy; cnProxy != "" {
+		p, err := url.Parse(cnProxy)
+		if err != nil {
+			log.Warn("bad CNProxy: %v", err)
+			return &net.Dialer{}
+		}
+		ip := server.Host
+		if net.ParseIP(ip) == nil {
+			ips, err := net.LookupHost(ip)
+			if err != nil {
+				return &net.Dialer{}
+			}
+			ip = ips[0]
+		}
+		if ipip.IsChinaIPLookupTable(ip) {
+			dialer, err := proxy.FromURL(p, proxy.Direct)
+			if err != nil {
+				log.Warn("failed to parse CNProxy: %v", err)
+				return &net.Dialer{}
+			}
+			return &manager.DialerConverter{Dialer: dialer}
+		}
+	}
+	return &net.Dialer{}
 }

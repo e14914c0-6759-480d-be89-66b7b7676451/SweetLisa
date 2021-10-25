@@ -7,6 +7,7 @@ import (
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
 	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	jsoniter "github.com/json-iterator/go"
 	"net"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	model.Register("shadowsocks", New)
+	manager.Register("shadowsocks", New)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
 	params := *config.GetConfig()
@@ -30,15 +31,17 @@ func init() {
 }
 
 type Shadowsocks struct {
-	arg        model.ManageArgument
+	dialer     manager.Dialer
+	arg        manager.ManageArgument
 	masterKey  []byte
 	cipherConf ss.CipherConf
 }
 
-func New(arg model.ManageArgument) model.Manager {
+func New(dialer manager.Dialer, arg manager.ManageArgument) manager.Manager {
 	cipherConf := ss.CiphersConf[arg.Argument.Method]
 	masterKey := ss.EVPBytesToKey(arg.Argument.Password, cipherConf.KeyLen)
 	return &Shadowsocks{
+		dialer:     dialer,
 		arg:        arg,
 		masterKey:  masterKey,
 		cipherConf: cipherConf,
@@ -46,7 +49,10 @@ func New(arg model.ManageArgument) model.Manager {
 }
 
 func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte) (resp []byte, err error) {
-	var dialer net.Dialer
+	dialer := s.dialer
+	if dialer == nil {
+		dialer = &net.Dialer{}
+	}
 	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(s.arg.Host, s.arg.Port))
 	if err != nil {
 		return nil, err
