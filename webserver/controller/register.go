@@ -44,11 +44,15 @@ func PostRegister(c *gin.Context) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
+		defer func() {
+			if err != nil {
+				log.Warn("reject to register %v: %v", req.Name, err)
+			}
+		}()
 		// ping test
 		log.Trace("ping %v use %v", req.Name, req.Argument)
 		if err := service.Ping(ctx, req); err != nil {
 			err = fmt.Errorf("unreachable: %w", err)
-			log.Warn("reject to register %v: %v", req.Name, err)
 			return
 		}
 		// register

@@ -90,6 +90,12 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 		if err != nil {
 			return err
 		}
+		// register a new server
+		if old := bkt.Get([]byte(server.Ticket)); old == nil {
+			if err := AddFeedServer(tx, server, ServerActionLaunch); err != nil {
+				return err
+			}
+		}
 		return bkt.Put([]byte(server.Ticket), b)
 	}
 	if wtx != nil {

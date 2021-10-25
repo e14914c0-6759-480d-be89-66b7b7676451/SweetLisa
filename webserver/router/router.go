@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"path"
 	"path/filepath"
 )
 
@@ -27,9 +28,15 @@ func Run(f embed.FS) error {
 	engine.SetHTMLTemplate(templ)
 	engine.Use(gin.Recovery())
 	engine.GET("/chat/:ChatIdentifier", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"ChatIdentifier": c.Param("ChatIdentifier"),
-		})
+		chatIdentifier := c.Param("ChatIdentifier")
+		switch path.Ext(chatIdentifier) {
+		case ".rss":
+			controller.GetChatRSS(c)
+		default:
+			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+				"ChatIdentifier": c.Param("ChatIdentifier"),
+			})
+		}
 	})
 	webFS := relativeFS{
 		root:        f,

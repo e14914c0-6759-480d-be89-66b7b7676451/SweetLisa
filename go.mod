@@ -7,6 +7,7 @@ require (
 	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211020052956-c845ae4b5d3c
 	github.com/eknkc/basex v1.0.1
 	github.com/gin-gonic/gin v1.7.4
+	github.com/gorilla/feeds v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
@@ -22,6 +23,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect

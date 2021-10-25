@@ -21,7 +21,6 @@ const (
 func (t TicketType) IsValid() bool {
 	return t >= 0 && t < TicketTypeINVALID
 }
-
 type Ticket struct {
 	Ticket         string
 	ChatIdentifier string

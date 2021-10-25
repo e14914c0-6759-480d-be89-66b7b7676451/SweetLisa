@@ -61,7 +61,7 @@ func GoBackgrounds() {
 	})()
 
 	// remove servers that have not been seen for a long time
-	go ExpireCleanBackground(model.BucketServer, 10*time.Minute, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
+	go ExpireCleanBackground(model.BucketServer, 5*time.Minute, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
 		var server model.Server
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return false, nil
@@ -76,6 +76,7 @@ func GoBackgrounds() {
 		}
 		if now.Sub(server.LastSeen) >= 10*time.Minute {
 			log.Info("remove server %v (type: %v) because of long time no see", server.Name, ticObj.Type)
+			_ = service.AddFeedServer(tx, server, service.ServerActionOffline)
 			return true, []string{ticObj.ChatIdentifier}
 		}
 		return false, nil
@@ -126,6 +127,25 @@ func GoBackgrounds() {
 			}
 		}
 		return todo
+	})()
+
+	// remove expired feeds
+	go TickUpdateBackground(model.BucketFeed, 1*time.Hour, func(b []byte, now time.Time) (todo func(b []byte) []byte) {
+		return func(b []byte) []byte {
+			var feed model.ChatFeed
+			if err := jsoniter.Unmarshal(b, &feed); err != nil {
+				return nil
+			}
+			var i int
+			for i = len(feed.Feeds) - 1; i >= 0 && now.Sub(feed.Feeds[i].Created) > 24*time.Hour; i-- {
+			}
+			feed.Feeds = feed.Feeds[:i+1]
+			if b, err := jsoniter.Marshal(b); err != nil {
+				return nil
+			} else {
+				return b
+			}
+		}
 	})()
 }
 
