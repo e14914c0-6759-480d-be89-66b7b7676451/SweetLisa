@@ -9,23 +9,14 @@ import (
 )
 
 var cache = make(map[string][]string)
-var mu sync.Mutex
-
-func IsChinaIPLookupTable(ip string) bool {
-	ipObj := net.ParseIP(ip)
-	if ipObj == nil {
-		return false
-	}
-	ok, err := t.Contains(ipObj)
-	return err == nil && ok
-}
+var muCache sync.Mutex
 
 func GetLocation(ctx context.Context, ip string) []string {
 	if net.ParseIP(ip) == nil {
 		return nil
 	}
-	mu.Lock()
-	defer mu.Unlock()
+	muCache.Lock()
+	defer muCache.Unlock()
 	if res, ok := cache[ip]; ok {
 		return res
 	}

@@ -1,9 +1,16 @@
 package ipip
 
 import (
+	"bufio"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/yl2chen/cidranger"
 	"net"
+	"net/http"
+	"sync"
+	"time"
 )
+
+const CNListURL = "https://github.com/17mon/china_ip_list/raw/master/china_ip_list.txt"
 
 // ChinaIPList is from https://github.com/17mon/china_ip_list/blob/master/china_ip_list.txt
 var ChinaIPList = []string{
@@ -6078,9 +6085,15 @@ var ChinaIPList = []string{
 	"223.255.252.0/31",
 }
 
-var t cidranger.Ranger
+var (
+	// muCNList protects t
+	muCNList sync.Mutex
+	t        cidranger.Ranger
+)
 
 func init() {
+	muCNList.Lock()
+	defer muCNList.Unlock()
 	t = cidranger.NewPCTrieRanger()
 	for _, cidr := range ChinaIPList {
 		_, ipNet, err := net.ParseCIDR(cidr)
@@ -6091,4 +6104,55 @@ func init() {
 			panic(err)
 		}
 	}
+	go updateCNListBackground()
+}
+
+func updateCNListBackground() {
+	// update every 5 days
+	tick := time.Tick(5 * 24 * time.Hour)
+nextLoop:
+	for range tick {
+		resp, err := http.Get(CNListURL)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			continue
+		}
+		buf := bufio.NewReader(resp.Body)
+		nt := cidranger.NewPCTrieRanger()
+		for {
+			line, _, err := buf.ReadLine()
+			if err != nil {
+				// end of file
+				break
+			}
+			_, ipNet, err := net.ParseCIDR(string(line))
+			if err != nil {
+				resp.Body.Close()
+				log.Warn("failed to update CNList: %v", err)
+				continue nextLoop
+			}
+			if err := nt.Insert(cidranger.NewBasicRangerEntry(*ipNet)); err != nil {
+				resp.Body.Close()
+				log.Warn("failed to update CNList: %v", err)
+				continue nextLoop
+			}
+		}
+		muCNList.Lock()
+		t = nt
+		muCNList.Unlock()
+	}
+}
+
+func IsChinaIPLookupTable(ip string) bool {
+	ipObj := net.ParseIP(ip)
+	if ipObj == nil {
+		return false
+	}
+	muCNList.Lock()
+	defer muCNList.Unlock()
+	ok, err := t.Contains(ipObj)
+	return err == nil && ok
 }

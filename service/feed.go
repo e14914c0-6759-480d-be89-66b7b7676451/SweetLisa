@@ -9,6 +9,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/gorilla/feeds"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"net/url"
 	"path"
 	"sort"
@@ -101,6 +102,9 @@ func AddFeed(wtx *bolt.Tx, chatIdentifier string, item feeds.Item) error {
 		} else {
 			chatFeedObj.ChatIdentifier = chatIdentifier
 		}
+		if item.Id == "" {
+			item.Id = gonanoid.Must()
+		}
 		chatFeedObj.Feeds = append([]*feeds.Item{&item}, chatFeedObj.Feeds...)
 		sort.SliceStable(chatFeedObj.Feeds, func(i, j int) bool {
 			return chatFeedObj.Feeds[i].Created.After(chatFeedObj.Feeds[j].Created)
@@ -137,11 +141,16 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 	case model.TicketTypeRelay:
 		typ = "Relay Server"
 	}
+	u := url.URL{
+		Scheme: "https",
+		Host:   config.GetConfig().Host,
+		Path:   path.Join("chat", tic.ChatIdentifier),
+	}
 	return AddFeed(wtx, tic.ChatIdentifier, feeds.Item{
 		Title: fmt.Sprintf("%v (%v): %v", action, typ, server.Name),
 		Link: &feeds.Link{
-			Href: "",
+			Href: u.String(),
 		},
-		Created:     time.Now(),
+		Created: time.Now(),
 	})
 }
