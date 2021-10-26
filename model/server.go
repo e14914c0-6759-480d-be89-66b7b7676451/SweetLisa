@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -34,8 +35,8 @@ type Server struct {
 	Ticket string
 	// Name is also the proxy node name
 	Name string
-	// Host can be IPs and domains (split by ",")
-	Host string
+	// Hosts can be IPs and domains (split by ",")
+	Hosts string `json:"Host"`
 	// Port is shared by management and proxy
 	Port int
 	// Argument is used to connect and manage the server
@@ -49,6 +50,10 @@ type Server struct {
 	LastSeen time.Time
 	// SyncNextSeen is a flag indicates the server should be sync next seen
 	SyncNextSeen bool
+}
+
+func GetFirstHost(host string) string {
+	return strings.SplitN(host, ",", 2)[0]
 }
 
 func GetUserArgument(serverTicket, userTicket string) Argument {

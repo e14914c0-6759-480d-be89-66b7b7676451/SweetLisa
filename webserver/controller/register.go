@@ -48,11 +48,11 @@ func PostRegister(c *gin.Context) {
 		return
 	}
 	// required info
-	if req.Host == "" ||
+	if req.Hosts == "" ||
 		req.Port == 0 ||
 		!req.Argument.Protocol.Valid() ||
 		req.Name == "" ||
-		hostsValidator(req.Host) != nil {
+		hostsValidator(req.Hosts) != nil {
 		common.ResponseBadRequestError(c)
 		return
 	}

@@ -134,7 +134,7 @@ func (b *ServerSyncBox) SyncBackground() {
 					}
 					log.Trace("Sync: tic: %v: %v", ticket, svr.Name)
 					mng, err := manager.NewManager(ChooseDialer(svr), manager.ManageArgument{
-						Host:     svr.Host,
+						Host:     model.GetFirstHost(svr.Hosts),
 						Port:     strconv.Itoa(svr.Port),
 						Argument: svr.Argument,
 					})
@@ -156,7 +156,7 @@ func (b *ServerSyncBox) SyncBackground() {
 						switch {
 						case common.IsCanceled(err):
 							// pass
-							log.Trace("SyncBackground: cancel: %v",err)
+							log.Trace("SyncBackground: cancel: %v", err)
 						default:
 							log.Info("SyncBackground (%v): %v", svr.Name, err)
 						}
@@ -227,7 +227,7 @@ func ReqSyncPassagesByChatIdentifier(wtx *bolt.Tx, chatIdentifier string, includ
 
 func Ping(ctx context.Context, server model.Server) error {
 	mng, err := manager.NewManager(ChooseDialer(server), manager.ManageArgument{
-		Host:     server.Host,
+		Host:     model.GetFirstHost(server.Hosts),
 		Port:     strconv.Itoa(server.Port),
 		Argument: server.Argument,
 	})
@@ -248,7 +248,7 @@ func ChooseDialer(server model.Server) manager.Dialer {
 			log.Warn("bad CNProxy: %v", err)
 			return &net.Dialer{}
 		}
-		ip := server.Host
+		ip := model.GetFirstHost(server.Hosts)
 		if net.ParseIP(ip) == nil {
 			ips, err := net.LookupHost(ip)
 			if err != nil {

@@ -69,7 +69,7 @@ func GetSubscription(c *gin.Context) {
 			svrs = append(svrs, server)
 		}
 		arg := model.GetUserArgument(server.Ticket, ticket)
-		for j, host := range strings.Split(server.Host, ",") {
+		for j, host := range strings.Split(server.Hosts, ",") {
 			var id string
 			if j == 0 {
 				id = common.StringToUUID5(arg.Password)
@@ -92,7 +92,7 @@ func GetSubscription(c *gin.Context) {
 	for _, relay := range relays {
 		for _, svr := range svrs {
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
-			for j, host := range strings.Split(relay.Host, ",") {
+			for j, host := range strings.Split(relay.Hosts, ",") {
 				var id string
 				if j == 0 {
 					id = common.StringToUUID5(arg.Password)
