@@ -11,9 +11,9 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
-	github.com/mrd0ll4r/netmatch v0.0.0-20160907195110-e86a38289aeb
 	github.com/stevenroose/gonfig v0.1.5
 	github.com/v2rayA/beego/v2 v2.0.4
+	github.com/yl2chen/cidranger v1.0.2
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	gopkg.in/tucnak/telebot.v2 v2.4.0
 )
@@ -30,11 +30,11 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/mzz2017/disk-bloom v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect; `indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
-	github.com/yl2chen/cidranger v1.0.2 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
