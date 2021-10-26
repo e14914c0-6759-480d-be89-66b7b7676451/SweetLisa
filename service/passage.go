@@ -9,6 +9,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
 	"strconv"
+	"strings"
 )
 
 func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Passage) {
@@ -101,8 +102,9 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 					passages = append(passages, model.Passage{
 						In: model.In{Argument: argUserRelayServer},
 						Out: &model.Out{
-							To:       svr.Name,
-							Host:     svr.Host,
+							To: svr.Name,
+							// FIXME: Relay only connects to the first host of the endpoint server
+							Host:     strings.Split(svr.Host, ",")[0],
 							Port:     strconv.Itoa(svr.Port),
 							Argument: argRelayServer,
 						},

@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // GetSubscription returns the user's subscription
@@ -67,14 +69,22 @@ func GetSubscription(c *gin.Context) {
 			svrs = append(svrs, server)
 		}
 		arg := model.GetUserArgument(server.Ticket, ticket)
-		sip008.Servers = append(sip008.Servers, model.SIP008Server{
-			Id:         common.StringToUUID5(arg.Password),
-			Remarks:    server.Name,
-			Server:     server.Host,
-			ServerPort: server.Port,
-			Password:   arg.Password,
-			Method:     arg.Method,
-		})
+		for j, host := range strings.Split(server.Host, ",") {
+			var id string
+			if j == 0 {
+				id = common.StringToUUID5(arg.Password)
+			} else {
+				id = common.StringToUUID5(arg.Password + ":" + strconv.Itoa(j))
+			}
+			sip008.Servers = append(sip008.Servers, model.SIP008Server{
+				Id:         id,
+				Remarks:    server.Name,
+				Server:     host,
+				ServerPort: server.Port,
+				Password:   arg.Password,
+				Method:     arg.Method,
+			})
+		}
 	}
 	sort.Slice(relays, func(i, j int) bool {
 		return relays[i].Name < relays[j].Name
@@ -82,14 +92,22 @@ func GetSubscription(c *gin.Context) {
 	for _, relay := range relays {
 		for _, svr := range svrs {
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
-			sip008.Servers = append(sip008.Servers, model.SIP008Server{
-				Id:         common.StringToUUID5(arg.Password),
-				Remarks:    relay.Name + " -> " + svr.Name,
-				Server:     relay.Host,
-				ServerPort: relay.Port,
-				Password:   arg.Password,
-				Method:     arg.Method,
-			})
+			for j, host := range strings.Split(relay.Host, ",") {
+				var id string
+				if j == 0 {
+					id = common.StringToUUID5(arg.Password)
+				} else {
+					id = common.StringToUUID5(arg.Password + ":" + strconv.Itoa(j))
+				}
+				sip008.Servers = append(sip008.Servers, model.SIP008Server{
+					Id:         id,
+					Remarks:    relay.Name + " -> " + svr.Name,
+					Server:     host,
+					ServerPort: relay.Port,
+					Password:   arg.Password,
+					Method:     arg.Method,
+				})
+			}
 		}
 	}
 	c.JSON(http.StatusOK, sip008)

@@ -34,17 +34,20 @@ type Server struct {
 	Ticket string
 	// Name is also the proxy node name
 	Name string
-	// Host can be either IP or domain
+	// Host can be IPs and domains (split by ",")
 	Host string
 	// Port is shared by management and proxy
 	Port int
+	// Argument is used to connect and manage the server
+	Argument Argument
+	// NetType indicates if the server supports v4(b01), v6(b10) or both(b11)
+	NetType uint8
+
 	// FailureCount is the number of consecutive failed pings
 	FailureCount int
 	// LastSeen is the time of last succeed ping
 	LastSeen time.Time
-	// Argument is used to connect and manage the server
-	Argument Argument
-
+	// SyncNextSeen is a flag indicates the server should be sync next seen
 	SyncNextSeen bool
 }
 

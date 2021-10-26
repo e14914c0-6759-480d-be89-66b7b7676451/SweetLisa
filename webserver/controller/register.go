@@ -8,8 +8,37 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
+	"net"
+	"strings"
 	"time"
 )
+
+func hostsValidator(str string) error {
+	hosts := strings.Split(str, ",")
+	for _, host := range hosts {
+		if err := hostValidator(host); err != nil {
+			return fmt.Errorf("%v: %w", host, err)
+		}
+	}
+	return nil
+}
+
+func hostValidator(str string) error {
+	e := fmt.Errorf("Invalid Host")
+	if net.ParseIP(str) != nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	addrs, err := net.DefaultResolver.LookupHost(ctx, str)
+	if err != nil {
+		return e
+	}
+	if len(addrs) == 0 {
+		return e
+	}
+	return nil
+}
 
 // PostRegister registers a server
 func PostRegister(c *gin.Context) {
@@ -22,7 +51,8 @@ func PostRegister(c *gin.Context) {
 	if req.Host == "" ||
 		req.Port == 0 ||
 		!req.Argument.Protocol.Valid() ||
-		req.Name == "" {
+		req.Name == "" ||
+		hostsValidator(req.Host) != nil {
 		common.ResponseBadRequestError(c)
 		return
 	}
