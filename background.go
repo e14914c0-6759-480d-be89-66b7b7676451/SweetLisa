@@ -92,7 +92,7 @@ func GoBackgrounds() {
 			// stop the ping and wait for the proactive register
 			return nil
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := service.Ping(ctx, server); err != nil {
 			log.Info("Ping server %v: %v", strconv.Quote(server.Name), err)
