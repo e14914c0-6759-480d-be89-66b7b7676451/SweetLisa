@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
@@ -23,6 +24,10 @@ func Ping(ctx context.Context, server model.Server) (*model.PingResp, error) {
 		return nil, fmt.Errorf("Ping: %w", err)
 	}
 	var r model.PingResp
+	// for compatibility
+	if bytes.Equal(bResp, []byte("pong")) {
+		return &r, nil
+	}
 	if err = jsoniter.Unmarshal(bResp, &r); err != nil {
 		return nil, err
 	}

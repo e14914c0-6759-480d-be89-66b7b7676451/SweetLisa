@@ -35,22 +35,20 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 		}
 		// get serverObj of server
 		bServer := bktServer.Get([]byte(serverTicket))
-		if bServer == nil {
-			log.Warn("inconsistent: cannot find key %v in bucket %v", serverTicket, model.BucketServer)
-			return db.ErrKeyNotFound
-		}
-		var serverObj model.Server
-		if err := jsoniter.Unmarshal(bServer, &serverObj); err != nil {
-			return err
+		if bServer != nil {
+			var serverObj model.Server
+			if err := jsoniter.Unmarshal(bServer, &serverObj); err != nil {
+				return err
+			}
+			if serverTicketObj.Type == model.TicketTypeServer {
+				if serverObj.BandwidthLimit.Exhausted() {
+					// do not generate Passages for exhausted servers
+					return nil
+				}
+			}
 		}
 
 		chatIdentifier := serverTicketObj.ChatIdentifier
-		if serverTicketObj.Type == model.TicketTypeServer {
-			if serverObj.BandwidthLimit.Exhausted() {
-				// do not generate Passages for exhausted servers
-				return nil
-			}
-		}
 
 		// generate all user/relay passages in this chat
 		var userTickets []string

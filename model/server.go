@@ -53,27 +53,26 @@ type Server struct {
 }
 
 type BandwidthLimit struct {
-	Valid bool
 	// ResetDay is the day of every month to reset the limit of bandwidth. Zero means never reset.
 	// This field should only be updated by SweetLisa after the first setup.
 	ResetDay time.Time `json:",omitempty"`
 
 	// UplinkLimitGiB is the limit of uplink bandwidth in GiB. Zero means no limit.
-	UplinkLimitGiB uint64 `json:",omitempty"`
+	UplinkLimitGiB int64 `json:",omitempty"`
 	// DownlinkLimitGiB is the limit of downlink bandwidth in GiB Zero means no limit.
-	DownlinkLimitGiB uint64 `json:",omitempty"`
+	DownlinkLimitGiB int64 `json:",omitempty"`
 	// TotalLimitGiB is the limit of downlink plus uplink bandwidth in GiB Zero means no limit.
-	TotalLimitGiB uint64 `json:",omitempty"`
+	TotalLimitGiB int64 `json:",omitempty"`
 
 	// UplinkKiB is the "transmit bytes" in /proc/net/dev of the biggest iface.
-	UplinkKiB uint64 `json:",omitempty"`
+	UplinkKiB int64 `json:",omitempty"`
 	// DownlinkKiB is the "receive bytes" in /proc/net/dev of the biggest iface.
-	DownlinkKiB uint64 `json:",omitempty"`
+	DownlinkKiB int64 `json:",omitempty"`
 
 	// UplinkInitialKiB is the UplinkKiB at the beginning of the every cycles.
-	UplinkInitialKiB uint64 `json:",omitempty"`
+	UplinkInitialKiB int64 `json:",omitempty"`
 	// DownlinkInitialKiB is the DownlinkKiB at the beginning of the every cycles.
-	DownlinkInitialKiB uint64 `json:",omitempty"`
+	DownlinkInitialKiB int64 `json:",omitempty"`
 }
 
 func (l *BandwidthLimit) Exhausted() bool {
@@ -90,9 +89,6 @@ func (l *BandwidthLimit) Exhausted() bool {
 }
 
 func (l *BandwidthLimit) Update(r BandwidthLimit) {
-	if !r.Valid {
-		return
-	}
 	if !l.ResetDay.IsZero() && l.ResetDay.In(r.ResetDay.Location()).Day() == r.ResetDay.Day() {
 		// update the statistic data
 		l.DownlinkLimitGiB = r.DownlinkLimitGiB
@@ -113,6 +109,9 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 			DownlinkKiB:        r.DownlinkKiB,
 			UplinkInitialKiB:   r.UplinkKiB,
 			DownlinkInitialKiB: r.DownlinkKiB,
+		}
+		if r.ResetDay.IsZero() {
+			l.ResetDay = time.Time{}
 		}
 	}
 }

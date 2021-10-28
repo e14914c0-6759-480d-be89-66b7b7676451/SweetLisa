@@ -14,7 +14,7 @@ import (
 )
 
 func NameToShow(server model.Server) string {
-	remaining := make([]uint64, 0, 3)
+	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
 		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
 			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)-
@@ -37,7 +37,7 @@ func NameToShow(server model.Server) string {
 	if remaining[0] < 0 {
 		remaining[0] = 0
 	}
-	return fmt.Sprintf("[%3f GiB] %v", float64(remaining[0])/1024/1024, server.Name)
+	return fmt.Sprintf("[%.1f GiB] %v", float64(remaining[0])/1024/1024, server.Name)
 }
 
 // GetSubscription returns the user's subscription
