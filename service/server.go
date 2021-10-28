@@ -89,10 +89,6 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 		if err != nil {
 			return err
 		}
-		b, err := jsoniter.Marshal(&server)
-		if err != nil {
-			return err
-		}
 		// register a new server
 		var old model.Server
 		if bOld := bkt.Get([]byte(server.Ticket)); bOld == nil {
@@ -106,6 +102,11 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 		}
 		old.BandwidthLimit.Update(server.BandwidthLimit)
 		server.BandwidthLimit = old.BandwidthLimit
+
+		b, err := jsoniter.Marshal(&server)
+		if err != nil {
+			return err
+		}
 		return bkt.Put([]byte(server.Ticket), b)
 	}
 	if wtx != nil {

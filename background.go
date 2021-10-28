@@ -83,7 +83,7 @@ func GoBackgrounds() {
 	})()
 
 	// ping at intervals
-	go TickUpdateBackground(model.BucketServer, 1*time.Minute, func(b []byte, now time.Time) (todo func(b []byte) []byte) {
+	go TickUpdateBackground(model.BucketServer, 1*time.Minute, func(b []byte, now time.Time) (todo func(wtx *bolt.Tx, b []byte) []byte) {
 		var server model.Server
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return nil
@@ -96,7 +96,7 @@ func GoBackgrounds() {
 		defer cancel()
 		if resp, err := service.Ping(ctx, server); err != nil {
 			log.Info("Ping server %v: %v", strconv.Quote(server.Name), err)
-			todo = func(b []byte) []byte {
+			todo = func(wtx *bolt.Tx, b []byte) []byte {
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
 					return nil
@@ -109,7 +109,7 @@ func GoBackgrounds() {
 				return b
 			}
 		} else {
-			todo = func(b []byte) []byte {
+			todo = func(wtx *bolt.Tx, b []byte) []byte {
 				var toSync bool
 				if server.SyncNextSeen {
 					toSync = true
@@ -121,11 +121,14 @@ func GoBackgrounds() {
 				server.FailureCount = 0
 				server.LastSeen = time.Now()
 				if server.BandwidthLimit.IsTimeToReset() {
+					server.BandwidthLimit.Update(resp.BandwidthLimit)
 					server.BandwidthLimit.Reset()
-				}
-				if !server.BandwidthLimit.Exhausted() {
+					toSync = true
+					_ = service.AddFeedServer(wtx, server, service.ServerActionBandwidthReset)
+				} else if !server.BandwidthLimit.Exhausted() {
 					if server.BandwidthLimit.Update(resp.BandwidthLimit); server.BandwidthLimit.Exhausted() {
 						toSync = true
+						_ = service.AddFeedServer(wtx, server, service.ServerActionBandwidthExhausted)
 					}
 				} else {
 					server.BandwidthLimit.Update(resp.BandwidthLimit)
@@ -149,8 +152,8 @@ func GoBackgrounds() {
 	})()
 
 	// remove expired feeds
-	go TickUpdateBackground(model.BucketFeed, 1*time.Hour, func(b []byte, now time.Time) (todo func(b []byte) []byte) {
-		return func(b []byte) []byte {
+	go TickUpdateBackground(model.BucketFeed, 1*time.Hour, func(b []byte, now time.Time) (todo func(wtx *bolt.Tx, b []byte) []byte) {
+		return func(wtx *bolt.Tx, b []byte) []byte {
 			var feed model.ChatFeed
 			if err := jsoniter.Unmarshal(b, &feed); err != nil {
 				return nil
@@ -261,11 +264,11 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx
 }
 
 // TickUpdateBackground will invoke f concurrently in view mode and then invoke non-nil todos in update mode.
-func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (todo func(b []byte) []byte)) func() {
+func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte, now time.Time) (todo func(wtx *bolt.Tx, b []byte) []byte)) func() {
 	return func() {
 		type keyTodo struct {
 			Key  []byte
-			Todo func(b []byte) []byte
+			Todo func(wtx *bolt.Tx, b []byte) []byte
 		}
 		tick := time.Tick(interval)
 		for now := range tick {
@@ -312,7 +315,7 @@ func TickUpdateBackground(bucket string, interval time.Duration, f func(b []byte
 						return err
 					}
 					for _, k := range keysTodo {
-						b := k.Todo(bkt.Get(k.Key))
+						b := k.Todo(tx, bkt.Get(k.Key))
 						if b == nil {
 							continue
 						}

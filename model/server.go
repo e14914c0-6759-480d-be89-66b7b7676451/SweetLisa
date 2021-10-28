@@ -76,13 +76,13 @@ type BandwidthLimit struct {
 }
 
 func (l *BandwidthLimit) Exhausted() bool {
-	if l.DownlinkLimitGiB != 0 && l.DownlinkKiB >= l.DownlinkInitialKiB+1024*1024*l.DownlinkLimitGiB {
+	if l.DownlinkLimitGiB > 0 && l.DownlinkKiB >= l.DownlinkInitialKiB+1024*1024*l.DownlinkLimitGiB {
 		return true
 	}
-	if l.UplinkLimitGiB != 0 && l.UplinkKiB >= l.UplinkInitialKiB+1024*1024*l.UplinkLimitGiB {
+	if l.UplinkLimitGiB > 0 && l.UplinkKiB >= l.UplinkInitialKiB+1024*1024*l.UplinkLimitGiB {
 		return true
 	}
-	if l.TotalLimitGiB != 0 && l.UplinkKiB+l.DownlinkKiB >= l.UplinkInitialKiB+l.DownlinkInitialKiB+1024*1024*l.TotalLimitGiB {
+	if l.TotalLimitGiB > 0 && l.UplinkKiB+l.DownlinkKiB >= l.UplinkInitialKiB+l.DownlinkInitialKiB+1024*1024*l.TotalLimitGiB {
 		return true
 	}
 	return false
@@ -101,7 +101,7 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 		now := time.Now()
 		*l = BandwidthLimit{
 			ResetDay: time.Date(now.Year(), now.Month(), r.ResetDay.Day(),
-				0, 0, 0, 0, r.ResetDay.Location()).AddDate(0, 1, 0),
+				0, 0, 0, 0, r.ResetDay.Location()),
 			UplinkLimitGiB:     r.UplinkLimitGiB,
 			DownlinkLimitGiB:   r.DownlinkLimitGiB,
 			TotalLimitGiB:      r.TotalLimitGiB,
@@ -109,6 +109,9 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 			DownlinkKiB:        r.DownlinkKiB,
 			UplinkInitialKiB:   r.UplinkKiB,
 			DownlinkInitialKiB: r.DownlinkKiB,
+		}
+		if l.ResetDay.Before(now) {
+			l.ResetDay = l.ResetDay.AddDate(0, 1, 0)
 		}
 		if r.ResetDay.IsZero() {
 			l.ResetDay = time.Time{}
@@ -126,7 +129,9 @@ func (l *BandwidthLimit) IsTimeToReset() bool {
 func (l *BandwidthLimit) Reset() {
 	l.UplinkInitialKiB = l.UplinkKiB
 	l.DownlinkInitialKiB = l.DownlinkKiB
-	l.ResetDay.AddDate(0, 1, 0)
+	if l.ResetDay.Before(time.Now()) {
+		l.ResetDay = l.ResetDay.AddDate(0, 1, 0)
+	}
 }
 
 func GetFirstHost(host string) string {
