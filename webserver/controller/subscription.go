@@ -8,6 +8,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,13 +21,10 @@ func NameToShow(server model.Server) string {
 			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)-
 			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
 	}
-	if server.BandwidthLimit.UplinkLimitGiB > 0 {
-		remaining = append(remaining, server.BandwidthLimit.UplinkLimitGiB*1024*1024-
-			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB))
-	}
-	if server.BandwidthLimit.DownlinkLimitGiB > 0 {
-		remaining = append(remaining, server.BandwidthLimit.DownlinkLimitGiB*1024*1024-
-			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
+	if server.BandwidthLimit.UplinkLimitGiB+server.BandwidthLimit.DownlinkLimitGiB > 0 {
+		remaining = append(remaining,
+			server.BandwidthLimit.UplinkLimitGiB*1024*1024-(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)+
+				server.BandwidthLimit.DownlinkLimitGiB*1024*1024-(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
 	}
 	if len(remaining) == 0 {
 		return server.Name
@@ -37,7 +35,13 @@ func NameToShow(server model.Server) string {
 	if remaining[0] < 0 {
 		remaining[0] = 0
 	}
-	return fmt.Sprintf("[%.1f GiB] %v", float64(remaining[0])/1024/1024, server.Name)
+	fields := regexp.MustCompile(`^\[(.+)]\s*(.+)$`).FindStringSubmatch(server.Name)
+	if len(fields) == 3 {
+		// [100Mbps] Racknerd -> [100Mbps 472.7GiB] Racknerd
+		return fmt.Sprintf("[%v %.1fGiB] %v", fields[1], float64(remaining[0])/1024/1024, fields[2])
+	}
+	// Racknerd -> [472.7GiB] Racknerd
+	return fmt.Sprintf("[%.1fGiB] %v", float64(remaining[0])/1024/1024, server.Name)
 }
 
 // GetSubscription returns the user's subscription
