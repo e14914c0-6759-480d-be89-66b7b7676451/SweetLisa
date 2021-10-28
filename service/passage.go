@@ -14,22 +14,49 @@ import (
 func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Passage) {
 	// server could be Server or Relay
 	f := func(tx *bolt.Tx) error {
-		bkt := tx.Bucket([]byte(model.BucketTicket))
-		if bkt == nil {
+		bktTicket := tx.Bucket([]byte(model.BucketTicket))
+		if bktTicket == nil {
 			return nil
 		}
-		// get server chatIdentifier
-		bServerTicket := bkt.Get([]byte(serverTicket))
+		bktServer := tx.Bucket([]byte(model.BucketServer))
+		if bktServer == nil {
+			return nil
+		}
+
+		// get ticketObj of server
+		bServerTicket := bktTicket.Get([]byte(serverTicket))
+		if bServerTicket == nil {
+			log.Warn("inconsistent: cannot find key %v in bucket %v", serverTicket, model.BucketTicket)
+			return db.ErrKeyNotFound
+		}
 		var serverTicketObj model.Ticket
 		if err := jsoniter.Unmarshal(bServerTicket, &serverTicketObj); err != nil {
 			return err
 		}
+		// get serverObj of server
+		bServer := bktServer.Get([]byte(serverTicket))
+		if bServer == nil {
+			log.Warn("inconsistent: cannot find key %v in bucket %v", serverTicket, model.BucketServer)
+			return db.ErrKeyNotFound
+		}
+		var serverObj model.Server
+		if err := jsoniter.Unmarshal(bServer, &serverObj); err != nil {
+			return err
+		}
+
 		chatIdentifier := serverTicketObj.ChatIdentifier
+		if serverTicketObj.Type == model.TicketTypeServer {
+			if serverObj.BandwidthLimit.Exhausted() {
+				// do not generate Passages for exhausted servers
+				return nil
+			}
+		}
+
 		// generate all user/relay passages in this chat
 		var userTickets []string
 		var servers []model.Server
 		var relays []model.Server
-		_ = bkt.ForEach(func(k, v []byte) error {
+		_ = bktTicket.ForEach(func(k, v []byte) error {
 			var ticket model.Ticket
 			if err := jsoniter.Unmarshal(v, &ticket); err != nil {
 				// do not stop the iter

@@ -13,6 +13,33 @@ import (
 	"strings"
 )
 
+func NameToShow(server model.Server) string {
+	remaining := make([]uint64, 0, 3)
+	if server.BandwidthLimit.TotalLimitGiB > 0 {
+		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
+			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)-
+			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
+	}
+	if server.BandwidthLimit.UplinkLimitGiB > 0 {
+		remaining = append(remaining, server.BandwidthLimit.UplinkLimitGiB*1024*1024-
+			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB))
+	}
+	if server.BandwidthLimit.DownlinkLimitGiB > 0 {
+		remaining = append(remaining, server.BandwidthLimit.DownlinkLimitGiB*1024*1024-
+			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
+	}
+	if len(remaining) == 0 {
+		return server.Name
+	}
+	sort.Slice(remaining, func(i, j int) bool {
+		return remaining[i] < remaining[j]
+	})
+	if remaining[0] < 0 {
+		remaining[0] = 0
+	}
+	return fmt.Sprintf("[%3f GiB] %v", float64(remaining[0])/1024/1024, server.Name)
+}
+
 // GetSubscription returns the user's subscription
 func GetSubscription(c *gin.Context) {
 	ticket := c.Param("Ticket")
@@ -78,7 +105,7 @@ func GetSubscription(c *gin.Context) {
 			}
 			sip008.Servers = append(sip008.Servers, model.SIP008Server{
 				Id:         id,
-				Remarks:    server.Name,
+				Remarks:    NameToShow(server),
 				Server:     host,
 				ServerPort: server.Port,
 				Password:   arg.Password,
@@ -101,7 +128,7 @@ func GetSubscription(c *gin.Context) {
 				}
 				sip008.Servers = append(sip008.Servers, model.SIP008Server{
 					Id:         id,
-					Remarks:    relay.Name + " -> " + svr.Name,
+					Remarks:    fmt.Sprintf("%v -> %v", NameToShow(relay), NameToShow(svr)),
 					Server:     host,
 					ServerPort: relay.Port,
 					Password:   arg.Password,

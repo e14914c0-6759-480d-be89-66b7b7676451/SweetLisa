@@ -70,15 +70,12 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 	return crw.GetTurn(addr, body)
 }
 
-func (s *Shadowsocks) Ping(ctx context.Context) (err error) {
-	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdPing}, []byte("ping"))
+func (s *Shadowsocks) Ping(ctx context.Context) (resp []byte, err error) {
+	resp, err = s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdPing}, []byte("ping"))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if !bytes.Equal(resp, []byte("pong")) {
-		return fmt.Errorf("unexpected ping response from server: %v", string(resp))
-	}
-	return nil
+	return resp, nil
 }
 
 func (s *Shadowsocks) SyncPassages(ctx context.Context, passages []model.Passage) (err error) {

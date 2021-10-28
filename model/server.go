@@ -41,8 +41,8 @@ type Server struct {
 	Port int
 	// Argument is used to connect and manage the server
 	Argument Argument
-	// NetType indicates if the server supports v4(b01), v6(b10) or both(b11)
-	NetType uint8
+	// BandwidthLimit is the limit of bandwidth
+	BandwidthLimit BandwidthLimit
 
 	// FailureCount is the number of consecutive failed pings
 	FailureCount int
@@ -50,6 +50,84 @@ type Server struct {
 	LastSeen time.Time
 	// SyncNextSeen is a flag indicates the server should be sync next seen
 	SyncNextSeen bool
+}
+
+type BandwidthLimit struct {
+	Valid bool
+	// ResetDay is the day of every month to reset the limit of bandwidth. Zero means never reset.
+	// This field should only be updated by SweetLisa after the first setup.
+	ResetDay time.Time `json:",omitempty"`
+
+	// UplinkLimitGiB is the limit of uplink bandwidth in GiB. Zero means no limit.
+	UplinkLimitGiB uint64 `json:",omitempty"`
+	// DownlinkLimitGiB is the limit of downlink bandwidth in GiB Zero means no limit.
+	DownlinkLimitGiB uint64 `json:",omitempty"`
+	// TotalLimitGiB is the limit of downlink plus uplink bandwidth in GiB Zero means no limit.
+	TotalLimitGiB uint64 `json:",omitempty"`
+
+	// UplinkKiB is the "transmit bytes" in /proc/net/dev of the biggest iface.
+	UplinkKiB uint64 `json:",omitempty"`
+	// DownlinkKiB is the "receive bytes" in /proc/net/dev of the biggest iface.
+	DownlinkKiB uint64 `json:",omitempty"`
+
+	// UplinkInitialKiB is the UplinkKiB at the beginning of the every cycles.
+	UplinkInitialKiB uint64 `json:",omitempty"`
+	// DownlinkInitialKiB is the DownlinkKiB at the beginning of the every cycles.
+	DownlinkInitialKiB uint64 `json:",omitempty"`
+}
+
+func (l *BandwidthLimit) Exhausted() bool {
+	if l.DownlinkLimitGiB != 0 && l.DownlinkKiB >= l.DownlinkInitialKiB+1024*1024*l.DownlinkLimitGiB {
+		return true
+	}
+	if l.UplinkLimitGiB != 0 && l.UplinkKiB >= l.UplinkInitialKiB+1024*1024*l.UplinkLimitGiB {
+		return true
+	}
+	if l.TotalLimitGiB != 0 && l.UplinkKiB+l.DownlinkKiB >= l.UplinkInitialKiB+l.DownlinkInitialKiB+1024*1024*l.TotalLimitGiB {
+		return true
+	}
+	return false
+}
+
+func (l *BandwidthLimit) Update(r BandwidthLimit) {
+	if !r.Valid {
+		return
+	}
+	if !l.ResetDay.IsZero() && l.ResetDay.In(r.ResetDay.Location()).Day() == r.ResetDay.Day() {
+		// update the statistic data
+		l.DownlinkLimitGiB = r.DownlinkLimitGiB
+		l.UplinkLimitGiB = r.UplinkLimitGiB
+		l.TotalLimitGiB = r.TotalLimitGiB
+		l.DownlinkKiB = r.DownlinkKiB
+		l.UplinkKiB = r.UplinkKiB
+	} else {
+		// (re-)initiate
+		now := time.Now()
+		*l = BandwidthLimit{
+			ResetDay: time.Date(now.Year(), now.Month(), r.ResetDay.Day(),
+				0, 0, 0, 0, r.ResetDay.Location()).AddDate(0, 1, 0),
+			UplinkLimitGiB:     r.UplinkLimitGiB,
+			DownlinkLimitGiB:   r.DownlinkLimitGiB,
+			TotalLimitGiB:      r.TotalLimitGiB,
+			UplinkKiB:          r.UplinkKiB,
+			DownlinkKiB:        r.DownlinkKiB,
+			UplinkInitialKiB:   r.UplinkKiB,
+			DownlinkInitialKiB: r.DownlinkKiB,
+		}
+	}
+}
+
+func (l *BandwidthLimit) IsTimeToReset() bool {
+	if !l.ResetDay.IsZero() && time.Now().After(l.ResetDay) {
+		return true
+	}
+	return false
+}
+
+func (l *BandwidthLimit) Reset() {
+	l.UplinkInitialKiB = l.UplinkKiB
+	l.DownlinkInitialKiB = l.DownlinkKiB
+	l.ResetDay.AddDate(0, 1, 0)
 }
 
 func GetFirstHost(host string) string {

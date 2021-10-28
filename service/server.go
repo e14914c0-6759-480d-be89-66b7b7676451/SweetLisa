@@ -94,11 +94,18 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 			return err
 		}
 		// register a new server
-		if old := bkt.Get([]byte(server.Ticket)); old == nil {
+		var old model.Server
+		if bOld := bkt.Get([]byte(server.Ticket)); bOld == nil {
 			if err := AddFeedServer(tx, server, ServerActionLaunch); err != nil {
 				return err
 			}
+		} else {
+			if err := jsoniter.Unmarshal(bOld, &old); err != nil {
+				return err
+			}
 		}
+		old.BandwidthLimit.Update(server.BandwidthLimit)
+		server.BandwidthLimit = old.BandwidthLimit
 		return bkt.Put([]byte(server.Ticket), b)
 	}
 	if wtx != nil {

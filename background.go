@@ -94,7 +94,7 @@ func GoBackgrounds() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := service.Ping(ctx, server); err != nil {
+		if resp, err := service.Ping(ctx, server); err != nil {
 			log.Info("Ping server %v: %v", strconv.Quote(server.Name), err)
 			todo = func(b []byte) []byte {
 				var server model.Server
@@ -110,8 +110,9 @@ func GoBackgrounds() {
 			}
 		} else {
 			todo = func(b []byte) []byte {
+				var toSync bool
 				if server.SyncNextSeen {
-					_ = service.SyncPassagesByServer(server.Ticket)
+					toSync = true
 				}
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
@@ -119,6 +120,24 @@ func GoBackgrounds() {
 				}
 				server.FailureCount = 0
 				server.LastSeen = time.Now()
+				if server.BandwidthLimit.IsTimeToReset() {
+					server.BandwidthLimit.Reset()
+				}
+				if !server.BandwidthLimit.Exhausted() {
+					if server.BandwidthLimit.Update(resp.BandwidthLimit); server.BandwidthLimit.Exhausted() {
+						toSync = true
+					}
+				} else {
+					server.BandwidthLimit.Update(resp.BandwidthLimit)
+				}
+				if toSync {
+					// asynchronously invoke sync to make sure it will happen after updating
+					time.AfterFunc(5*time.Second, func() {
+						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
+							log.Warn("ReqSyncPassagesByServer: %v", e)
+						}
+					})
+				}
 				b, err := jsoniter.Marshal(server)
 				if err != nil {
 					return nil
@@ -179,7 +198,7 @@ func SyncAll() {
 					go func(ctx context.Context, relay model.Server, chatIdentifier string) {
 						defer chatWg.Done()
 						// ping test
-						if err := service.Ping(ctx, relay); err != nil {
+						if _, err := service.Ping(ctx, relay); err != nil {
 							err = fmt.Errorf("unreachable: %w", err)
 							log.Warn("failed to register %v: %v", relay.Name, err)
 							return

@@ -87,7 +87,7 @@ func PostRegister(c *gin.Context) {
 		}()
 		// ping test
 		log.Trace("ping %v use %v", req.Name, req.Argument)
-		if err = service.Ping(ctx, req); err != nil {
+		if _, err = service.Ping(ctx, req); err != nil {
 			err = fmt.Errorf("unreachable: %w", err)
 			return
 		}

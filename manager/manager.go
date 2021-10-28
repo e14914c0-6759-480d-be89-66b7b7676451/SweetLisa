@@ -14,7 +14,7 @@ type ManageArgument struct {
 }
 
 type Manager interface {
-	Ping(ctx context.Context) (err error)
+	Ping(ctx context.Context) (resp []byte, err error)
 	SyncPassages(ctx context.Context, passages []model.Passage) (err error)
 }
 

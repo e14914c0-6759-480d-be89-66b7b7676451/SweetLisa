@@ -202,7 +202,7 @@ func init() {
 	go DefaultServerSyncBox.SyncBackground()
 }
 
-func SyncPassagesByServer(serverTicket string) (err error) {
+func ReqSyncPassagesByServer(serverTicket string) (err error) {
 	DefaultServerSyncBox.ReqSync(serverTicket)
 	return nil
 }
@@ -221,21 +221,6 @@ func ReqSyncPassagesByChatIdentifier(wtx *bolt.Tx, chatIdentifier string, includ
 	wg.Wait()
 	if errs != nil {
 		return fmt.Errorf(strings.Join(errs, "\n"))
-	}
-	return nil
-}
-
-func Ping(ctx context.Context, server model.Server) error {
-	mng, err := manager.NewManager(ChooseDialer(server), manager.ManageArgument{
-		Host:     model.GetFirstHost(server.Hosts),
-		Port:     strconv.Itoa(server.Port),
-		Argument: server.Argument,
-	})
-	if err != nil {
-		return fmt.Errorf("NewManager(%v): %w", server.Name, err)
-	}
-	if err = mng.Ping(ctx); err != nil {
-		return fmt.Errorf("Ping: %w", err)
 	}
 	return nil
 }
