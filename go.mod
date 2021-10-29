@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/boltdb/bolt v1.3.1
-	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.0.0-20211020052956-c845ae4b5d3c
+	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v0.1.15
 	github.com/eknkc/basex v1.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/gorilla/feeds v1.1.1
