@@ -19,9 +19,9 @@ import (
 type ServerAction string
 
 const (
-	ServerActionLaunch             ServerAction = "🚀 Launch"
-	ServerActionReconnected                     = "🀄️ Reconnected"
-	ServerActionDisconnected                    = "💥 Disconnected"
+	ServerActionLaunch             ServerAction = "🚀 Launched"
+	ServerActionReconnect                       = "🀄️ Reconnected"
+	ServerActionDisconnect                      = "💥 Disconnected"
 	ServerActionBandwidthExhausted              = "🈳 Bandwidth Exhausted"
 	ServerActionBandwidthReset                  = "🈵 Bandwidth Reset"
 )

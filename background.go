@@ -107,7 +107,7 @@ func GoBackgrounds() {
 				if server.FailureCount >= model.MaxFailureCount {
 					// asynchronously invoke sync to make sure it will happen after updating
 					log.Info("server %v disconnected", server.Name)
-					_ = service.AddFeedServer(wtx, server, service.ServerActionDisconnected)
+					_ = service.AddFeedServer(wtx, server, service.ServerActionDisconnect)
 					time.AfterFunc(1*time.Second, func() {
 						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
@@ -133,7 +133,7 @@ func GoBackgrounds() {
 				}
 				if server.FailureCount >= model.MaxFailureCount {
 					log.Info("server %v reconnected", server.Name)
-					_ = service.AddFeedServer(wtx, server, service.ServerActionReconnected)
+					_ = service.AddFeedServer(wtx, server, service.ServerActionReconnect)
 					toSync = true
 				}
 				server.FailureCount = 0
