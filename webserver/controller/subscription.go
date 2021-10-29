@@ -7,11 +7,13 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
+	"net"
 	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func NameToShow(server model.Server) string {
@@ -42,6 +44,47 @@ func NameToShow(server model.Server) string {
 	}
 	// Racknerd -> [472.7GiB] Racknerd
 	return fmt.Sprintf("[%.1fGiB] %v", float64(remaining[0])/1024/1024, server.Name)
+}
+
+func ServerIpTypes(servers []string) map[string]uint8 {
+	servers = common.Deduplicate(servers)
+	var dm []string
+	var mu sync.Mutex
+	var typ = make(map[string]uint8)
+	for _, s := range servers {
+		if ip := net.ParseIP(s); ip == nil {
+			dm = append(dm, s)
+		} else if ip.To4() != nil {
+			typ[s] = 1
+		} else {
+			typ[s] = 2
+		}
+	}
+	var wg sync.WaitGroup
+	for _, d := range dm {
+		wg.Add(1)
+		go func(d string) {
+			defer wg.Done()
+			addrs, err := net.LookupHost(d)
+			if err != nil {
+				mu.Lock()
+				typ[d] = 1 | 2
+				mu.Unlock()
+				return
+			}
+			for _, a := range addrs {
+				mu.Lock()
+				if net.ParseIP(a).To4() != nil {
+					typ[d] |= 1
+				} else {
+					typ[d] |= 2
+				}
+				mu.Unlock()
+			}
+		}(d)
+	}
+	wg.Wait()
+	return typ
 }
 
 // GetSubscription returns the user's subscription
@@ -140,6 +183,23 @@ func GetSubscription(c *gin.Context) {
 				})
 			}
 		}
+	}
+	switch filter := c.Param("filter"); filter {
+	case "4", "6":
+		var servers []string
+		for _, s := range sip008.Servers {
+			servers = append(servers, s.Server)
+		}
+		typ := ServerIpTypes(servers)
+		var filtered []model.SIP008Server
+		for _, s := range sip008.Servers {
+			if filter == "4" && typ[s.Server]&1 == 1 {
+				filtered = append(filtered, s)
+			} else if filter == "6" && typ[s.Server]&2 == 2 {
+				filtered = append(filtered, s)
+			}
+		}
+		sip008.Servers = filtered
 	}
 	c.JSON(http.StatusOK, sip008)
 }

@@ -68,6 +68,7 @@ func Run(f embed.FS) error {
 	ticket := api.Group("ticket/:Ticket")
 	{
 		ticket.GET("sub", controller.GetSubscription)
+		ticket.GET("sub/:filter", controller.GetSubscription)
 		ticket.POST("register", controller.PostRegister)
 		ticket.POST("renew", controller.PostRenew)
 	}
