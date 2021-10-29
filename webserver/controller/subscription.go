@@ -37,13 +37,18 @@ func NameToShow(server model.Server) string {
 	if remaining[0] < 0 {
 		remaining[0] = 0
 	}
+	fRemainingGiB := float64(remaining[0]) / 1024 / 1024
+	// do not show if there is adequate bandwidth
+	if fRemainingGiB > 500 {
+		return server.Name
+	}
 	fields := regexp.MustCompile(`^\[(.+)]\s*(.+)$`).FindStringSubmatch(server.Name)
 	if len(fields) == 3 {
 		// [100Mbps] Racknerd -> [100Mbps 472.7GiB] Racknerd
-		return fmt.Sprintf("[%v %.1fGiB] %v", fields[1], float64(remaining[0])/1024/1024, fields[2])
+		return fmt.Sprintf("[%v %.1fGiB] %v", fields[1], fRemainingGiB, fields[2])
 	}
 	// Racknerd -> [472.7GiB] Racknerd
-	return fmt.Sprintf("[%.1fGiB] %v", float64(remaining[0])/1024/1024, server.Name)
+	return fmt.Sprintf("[%.1fGiB] %v", fRemainingGiB, server.Name)
 }
 
 func ServerIpTypes(servers []string) map[string]uint8 {
