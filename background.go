@@ -121,10 +121,12 @@ func GoBackgrounds() {
 				server.FailureCount = 0
 				server.LastSeen = time.Now()
 				if server.BandwidthLimit.IsTimeToReset() {
+					if server.BandwidthLimit.Exhausted() {
+						_ = service.AddFeedServer(wtx, server, service.ServerActionBandwidthReset)
+					}
 					server.BandwidthLimit.Update(resp.BandwidthLimit)
 					server.BandwidthLimit.Reset()
 					toSync = true
-					_ = service.AddFeedServer(wtx, server, service.ServerActionBandwidthReset)
 				} else if !server.BandwidthLimit.Exhausted() {
 					if server.BandwidthLimit.Update(resp.BandwidthLimit); server.BandwidthLimit.Exhausted() {
 						toSync = true
