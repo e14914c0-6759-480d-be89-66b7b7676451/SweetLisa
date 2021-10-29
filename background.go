@@ -74,7 +74,7 @@ func GoBackgrounds() {
 		if err := jsoniter.Unmarshal(bkt.Get([]byte(server.Ticket)), &ticObj); err != nil {
 			return false, nil
 		}
-		if now.Sub(server.LastSeen) >= 10*time.Minute {
+		if server.FailureCount >= model.MaxFailureCount {
 			log.Info("remove server %v (type: %v) because of long time no see", server.Name, ticObj.Type)
 			_ = service.AddFeedServer(tx, server, service.ServerActionOffline)
 			return true, []string{ticObj.ChatIdentifier}
