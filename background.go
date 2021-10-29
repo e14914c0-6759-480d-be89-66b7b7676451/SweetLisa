@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
@@ -173,7 +175,7 @@ func GoBackgrounds() {
 	go TickUpdateBackground(model.BucketFeed, 1*time.Hour, func(b []byte, now time.Time) (todo func(wtx *bolt.Tx, b []byte) []byte) {
 		return func(wtx *bolt.Tx, b []byte) []byte {
 			var feed model.ChatFeed
-			if err := jsoniter.Unmarshal(b, &feed); err != nil {
+			if err := gob.NewDecoder(bytes.NewReader(b)).Decode(&feed); err != nil {
 				log.Warn("TickUpdateBackground: %v", err)
 				return nil
 			}
@@ -184,11 +186,12 @@ func GoBackgrounds() {
 			for i = len(feed.Feeds) - 1; i >= 0 && now.Sub(feed.Feeds[i].Created) > 48*time.Hour; i-- {
 			}
 			feed.Feeds = feed.Feeds[:i+1]
-			if b, err := jsoniter.Marshal(feed); err != nil {
+			var buf bytes.Buffer
+			if err := gob.NewEncoder(&buf).Encode(feed); err != nil {
 				log.Warn("TickUpdateBackground: %v", err)
 				return nil
 			} else {
-				return b
+				return buf.Bytes()
 			}
 		}
 	})()
