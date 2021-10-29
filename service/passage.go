@@ -109,6 +109,9 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 				})
 			}
 			for _, relay := range relays {
+				if relay.FailureCount >= model.MaxFailureCount || relay.BandwidthLimit.Exhausted() {
+					continue
+				}
 				passages = append(passages, model.Passage{
 					In: model.In{
 						From:     relay.Name,
@@ -120,6 +123,9 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 			// relay inbounds are for users but related with servers (n*m)
 			// relay outbounds are for servers
 			for _, svr := range servers {
+				if svr.FailureCount >= model.MaxFailureCount || svr.BandwidthLimit.Exhausted() {
+					continue
+				}
 				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket)
 				for _, userTicket := range userTickets {
 					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket)

@@ -127,7 +127,7 @@ func GetSubscription(c *gin.Context) {
 	var svrs []model.Server
 	for _, server := range servers {
 		if server.FailureCount >= model.MaxFailureCount {
-			// do not return lost-alive server
+			// do not return disconnected server
 			continue
 		}
 		svrTic, err := service.GetValidTicketObj(nil, server.Ticket)

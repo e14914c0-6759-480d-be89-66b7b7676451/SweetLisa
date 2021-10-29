@@ -10,6 +10,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	jsoniter "github.com/json-iterator/go"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -60,8 +61,8 @@ func GoBackgrounds() {
 		return false, nil
 	})()
 
-	// remove servers that have not been seen for a long time
-	go ExpireCleanBackground(model.BucketServer, 5*time.Minute, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
+	// remove servers/relays that have not been seen for a long time
+	go ExpireCleanBackground(model.BucketServer, 1*time.Hour, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
 		var server model.Server
 		if err := jsoniter.Unmarshal(b, &server); err != nil {
 			return false, nil
@@ -74,9 +75,7 @@ func GoBackgrounds() {
 		if err := jsoniter.Unmarshal(bkt.Get([]byte(server.Ticket)), &ticObj); err != nil {
 			return false, nil
 		}
-		if server.FailureCount >= model.MaxFailureCount {
-			log.Info("remove server %v (type: %v) because of long time no see", server.Name, ticObj.Type)
-			_ = service.AddFeedServer(tx, server, service.ServerActionOffline)
+		if now.Sub(server.LastSeen) >= 35*24*time.Hour {
 			return true, []string{ticObj.ChatIdentifier}
 		}
 		return false, nil
@@ -102,6 +101,18 @@ func GoBackgrounds() {
 					return nil
 				}
 				server.FailureCount++
+
+				if server.FailureCount >= model.MaxFailureCount {
+					// asynchronously invoke sync to make sure it will happen after updating
+					log.Info("server %v disconnected", server.Name)
+					_ = service.AddFeedServer(wtx, server, service.ServerActionDisconnected)
+					time.AfterFunc(1*time.Second, func() {
+						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
+							log.Warn("ReqSyncPassagesByServer: %v", e)
+						}
+					})
+				}
+
 				b, err := jsoniter.Marshal(server)
 				if err != nil {
 					return nil
@@ -111,12 +122,17 @@ func GoBackgrounds() {
 		} else {
 			todo = func(wtx *bolt.Tx, b []byte) []byte {
 				var toSync bool
-				if server.SyncNextSeen {
-					toSync = true
-				}
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
 					return nil
+				}
+				if server.SyncNextSeen {
+					toSync = true
+				}
+				if server.FailureCount >= model.MaxFailureCount {
+					log.Info("server %v reconnected", server.Name)
+					_ = service.AddFeedServer(wtx, server, service.ServerActionReconnected)
+					toSync = true
 				}
 				server.FailureCount = 0
 				server.LastSeen = time.Now()
@@ -137,7 +153,7 @@ func GoBackgrounds() {
 				}
 				if toSync {
 					// asynchronously invoke sync to make sure it will happen after updating
-					time.AfterFunc(5*time.Second, func() {
+					time.AfterFunc(1*time.Second, func() {
 						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
 						}
@@ -158,13 +174,18 @@ func GoBackgrounds() {
 		return func(wtx *bolt.Tx, b []byte) []byte {
 			var feed model.ChatFeed
 			if err := jsoniter.Unmarshal(b, &feed); err != nil {
+				log.Warn("TickUpdateBackground: %v", err)
 				return nil
 			}
+			sort.SliceStable(feed.Feeds, func(i, j int) bool {
+				return feed.Feeds[i].Created.After(feed.Feeds[j].Created)
+			})
 			var i int
 			for i = len(feed.Feeds) - 1; i >= 0 && now.Sub(feed.Feeds[i].Created) > 48*time.Hour; i-- {
 			}
 			feed.Feeds = feed.Feeds[:i+1]
 			if b, err := jsoniter.Marshal(feed); err != nil {
+				log.Warn("TickUpdateBackground: %v", err)
 				return nil
 			} else {
 				return b

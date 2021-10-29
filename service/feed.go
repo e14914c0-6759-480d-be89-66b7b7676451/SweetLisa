@@ -20,7 +20,8 @@ type ServerAction string
 
 const (
 	ServerActionLaunch             ServerAction = "🚀 Launch"
-	ServerActionOffline                         = "💥 Offline"
+	ServerActionReconnected                     = "🀄️ Reconnected"
+	ServerActionDisconnected                    = "💥 Disconnected"
 	ServerActionBandwidthExhausted              = "🈳 Bandwidth Exhausted"
 	ServerActionBandwidthReset                  = "🈵 Bandwidth Reset"
 )
