@@ -161,10 +161,10 @@ func GoBackgrounds() {
 				return nil
 			}
 			var i int
-			for i = len(feed.Feeds) - 1; i >= 0 && now.Sub(feed.Feeds[i].Created) > 24*time.Hour; i-- {
+			for i = len(feed.Feeds) - 1; i >= 0 && now.Sub(feed.Feeds[i].Created) > 48*time.Hour; i-- {
 			}
 			feed.Feeds = feed.Feeds[:i+1]
-			if b, err := jsoniter.Marshal(b); err != nil {
+			if b, err := jsoniter.Marshal(feed); err != nil {
 				return nil
 			} else {
 				return b
