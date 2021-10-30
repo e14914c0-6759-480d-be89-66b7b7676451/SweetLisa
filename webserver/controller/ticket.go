@@ -37,9 +37,11 @@ func GetTicket(c *gin.Context) {
 		return
 	}
 	// ReqSyncPassagesByChatIdentifier
-	if err := service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, true); err != nil {
-		common.ResponseError(c, fmt.Errorf("ReqSyncPassagesByChatIdentifier: %v", err))
-		return
+	if tic.Type == model.TicketTypeUser {
+		if err := service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, true); err != nil {
+			common.ResponseError(c, fmt.Errorf("ReqSyncPassagesByChatIdentifier: %v", err))
+			return
+		}
 	}
 	common.ResponseSuccess(c, gin.H{
 		"Ticket": tic,

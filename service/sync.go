@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
@@ -16,7 +15,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -202,25 +200,40 @@ func init() {
 	go DefaultServerSyncBox.SyncBackground()
 }
 
-func ReqSyncPassagesByServer(serverTicket string) (err error) {
-	DefaultServerSyncBox.ReqSync(serverTicket)
+func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string) (err error) {
+	ticketsToSync := []string{serverTicket}
+	tic, err := GetValidTicketObj(tx, serverTicket)
+	if err != nil {
+		return err
+	}
+	servers, err := GetServersByChatIdentifier(tx, tic.ChatIdentifier, true)
+	if err != nil {
+		return err
+	}
+	for _, svr := range servers {
+		t, err := GetValidTicketObj(tx, svr.Ticket)
+		if err != nil {
+			continue
+		}
+		if tic.Type == model.TicketTypeServer && t.Type == model.TicketTypeRelay ||
+			tic.Type == model.TicketTypeRelay && t.Type == model.TicketTypeServer {
+			ticketsToSync = append(ticketsToSync, t.Ticket)
+		}
+	}
+	for _, tic := range ticketsToSync {
+		DefaultServerSyncBox.ReqSync(tic)
+	}
 	return nil
 }
 
 // ReqSyncPassagesByChatIdentifier costs long time, thus tx here should be nil.
-func ReqSyncPassagesByChatIdentifier(wtx *bolt.Tx, chatIdentifier string, includeRelay bool) (err error) {
-	servers, err := GetServersByChatIdentifier(wtx, chatIdentifier, includeRelay)
+func ReqSyncPassagesByChatIdentifier(tx *bolt.Tx, chatIdentifier string, includeRelay bool) (err error) {
+	servers, err := GetServersByChatIdentifier(tx, chatIdentifier, includeRelay)
 	if err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
-	var errs []string
 	for _, svr := range servers {
 		DefaultServerSyncBox.ReqSync(svr.Ticket)
-	}
-	wg.Wait()
-	if errs != nil {
-		return fmt.Errorf(strings.Join(errs, "\n"))
 	}
 	return nil
 }

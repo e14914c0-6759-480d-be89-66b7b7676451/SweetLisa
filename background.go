@@ -109,7 +109,7 @@ func GoBackgrounds() {
 					log.Info("server %v disconnected", server.Name)
 					_ = service.AddFeedServer(wtx, server, service.ServerActionDisconnect)
 					time.AfterFunc(1*time.Second, func() {
-						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
+						if e := service.ReqSyncPassagesByServer(wtx, server.Ticket); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
 						}
 					})
@@ -156,7 +156,7 @@ func GoBackgrounds() {
 				if toSync {
 					// asynchronously invoke sync to make sure it will happen after updating
 					time.AfterFunc(1*time.Second, func() {
-						if e := service.ReqSyncPassagesByServer(server.Ticket); e != nil {
+						if e := service.ReqSyncPassagesByServer(wtx, server.Ticket); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
 						}
 					})

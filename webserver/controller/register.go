@@ -95,10 +95,8 @@ func PostRegister(c *gin.Context) {
 		if err = service.RegisterServer(nil, req); err != nil {
 			return
 		}
-		if ticObj.Type == model.TicketTypeRelay {
-			if err = service.ReqSyncPassagesByChatIdentifier(nil, chatIdentifier, false); err != nil {
-				return
-			}
+		if err = service.ReqSyncPassagesByServer(nil, chatIdentifier); err != nil {
+			return
 		}
 	}(req, ticObj.ChatIdentifier)
 	log.Info("Received a register request from %v: Chat: %v, Type: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type)
