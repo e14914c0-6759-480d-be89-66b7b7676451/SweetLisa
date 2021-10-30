@@ -217,6 +217,9 @@ func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string) (err error) {
 		}
 		if tic.Type == model.TicketTypeServer && t.Type == model.TicketTypeRelay ||
 			tic.Type == model.TicketTypeRelay && t.Type == model.TicketTypeServer {
+			if svr.SyncNextSeen {
+				continue
+			}
 			ticketsToSync = append(ticketsToSync, t.Ticket)
 		}
 	}
@@ -233,6 +236,9 @@ func ReqSyncPassagesByChatIdentifier(tx *bolt.Tx, chatIdentifier string, include
 		return err
 	}
 	for _, svr := range servers {
+		if svr.SyncNextSeen {
+			continue
+		}
 		DefaultServerSyncBox.ReqSync(svr.Ticket)
 	}
 	return nil
