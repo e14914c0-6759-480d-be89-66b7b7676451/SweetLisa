@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-const PasswordReserve = "#SWEETLISA#"
+const PasswordReserve = "__SWEETLISA__"
 
 func NameToShow(server model.Server) string {
 	remaining := make([]int64, 0, 3)
