@@ -16,6 +16,8 @@ import (
 	"sync"
 )
 
+const PasswordReserve = "#SWEETLISA#"
+
 func NameToShow(server model.Server) string {
 	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
@@ -125,7 +127,7 @@ func GetSubscription(c *gin.Context) {
 		Remarks:    fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02 15:04 MST")),
 		Server:     "127.0.0.1",
 		ServerPort: 1024,
-		Password:   "0",
+		Password:   PasswordReserve,
 		Method:     "chacha20-ietf-poly1305",
 	})
 	var relays []model.Server
@@ -198,6 +200,10 @@ func GetSubscription(c *gin.Context) {
 		typ := ServerIpTypes(servers)
 		var filtered []model.SIP008Server
 		for _, s := range sip008.Servers {
+			if s.Password == PasswordReserve {
+				filtered = append(filtered, s)
+				continue
+			}
 			if filter == "4" && typ[s.Server]&1 == 1 {
 				filtered = append(filtered, s)
 			} else if filter == "6" && typ[s.Server]&2 == 2 {
