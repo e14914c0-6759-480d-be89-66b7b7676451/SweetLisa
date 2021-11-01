@@ -53,9 +53,11 @@ type Server struct {
 }
 
 type BandwidthLimit struct {
-	// ResetDay is the day of every month to reset the limit of bandwidth. Zero means never reset.
+	// Deprecated (only day is valid): ResetDay is the day of every month to reset the limit of bandwidth. Zero means never reset.
 	// This field should only be updated by SweetLisa after the first setup.
 	ResetDay time.Time `json:",omitempty"`
+	// ResetMonth indicate if this month has reset. For example, if ResetMonth = 3, reset will not happen again in March.
+	ResetMonth time.Month
 
 	// UplinkLimitGiB is the limit of uplink bandwidth in GiB. Zero means no limit.
 	UplinkLimitGiB int64 `json:",omitempty"`
@@ -89,6 +91,10 @@ func (l *BandwidthLimit) Exhausted() bool {
 }
 
 func (l *BandwidthLimit) Update(r BandwidthLimit) {
+	// 03/31 + 1 month = 05/01, 05/01 + 1 month = 06/01
+	// but 03/31 + 2 months = 05/31
+
+	// 7th and 8th months have 31 days
 	if !l.ResetDay.IsZero() && l.ResetDay.In(r.ResetDay.Location()).Day() == r.ResetDay.Day() {
 		// update the statistic data
 		l.DownlinkLimitGiB = r.DownlinkLimitGiB
@@ -98,9 +104,8 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 		l.UplinkKiB = r.UplinkKiB
 	} else {
 		// (re-)initiate
-		now := time.Now()
 		*l = BandwidthLimit{
-			ResetDay: time.Date(now.Year(), now.Month(), r.ResetDay.Day(),
+			ResetDay: time.Date(2000, 7, r.ResetDay.Day(),
 				0, 0, 0, 0, r.ResetDay.Location()),
 			UplinkLimitGiB:     r.UplinkLimitGiB,
 			DownlinkLimitGiB:   r.DownlinkLimitGiB,
@@ -110,9 +115,6 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 			UplinkInitialKiB:   r.UplinkKiB,
 			DownlinkInitialKiB: r.DownlinkKiB,
 		}
-		if l.ResetDay.Before(now) {
-			l.ResetDay = l.ResetDay.AddDate(0, 1, 0)
-		}
 		if r.ResetDay.IsZero() {
 			l.ResetDay = time.Time{}
 		}
@@ -120,7 +122,8 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 }
 
 func (l *BandwidthLimit) IsTimeToReset() bool {
-	if !l.ResetDay.IsZero() && time.Now().After(l.ResetDay) {
+	now := time.Now().In(l.ResetDay.Location())
+	if !l.ResetDay.IsZero() && l.ResetMonth != now.Month() && now.Day() >= l.ResetDay.Day() {
 		return true
 	}
 	return false
@@ -129,9 +132,8 @@ func (l *BandwidthLimit) IsTimeToReset() bool {
 func (l *BandwidthLimit) Reset() {
 	l.UplinkInitialKiB = l.UplinkKiB
 	l.DownlinkInitialKiB = l.DownlinkKiB
-	if l.ResetDay.Before(time.Now()) {
-		l.ResetDay = l.ResetDay.AddDate(0, 1, 0)
-	}
+	now := time.Now().In(l.ResetDay.Location())
+	l.ResetMonth = now.Month()
 }
 
 func GetFirstHost(host string) string {
