@@ -102,7 +102,7 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 		l.TotalLimitGiB = r.TotalLimitGiB
 		l.DownlinkKiB = r.DownlinkKiB
 		l.UplinkKiB = r.UplinkKiB
-	} else {
+	} else if l.ResetDay.IsZero() {
 		// (re-)initiate
 		*l = BandwidthLimit{
 			ResetDay: time.Date(2000, 7, r.ResetDay.Day(),
@@ -117,6 +117,13 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 		}
 		if r.ResetDay.IsZero() {
 			l.ResetDay = time.Time{}
+		}
+	} else {
+		if r.ResetDay.IsZero() {
+			l.ResetDay = time.Time{}
+		} else {
+			l.ResetDay = time.Date(2000, 7, r.ResetDay.Day(),
+				0, 0, 0, 0, r.ResetDay.Location())
 		}
 	}
 }
