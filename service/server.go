@@ -6,6 +6,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
 	"time"
 )
@@ -82,8 +83,6 @@ func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string, includeRelay
 
 // RegisterServer save the server in db
 func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
-	server.FailureCount = 0
-	server.LastSeen = time.Now()
 	f := func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketServer))
 		if err != nil {
@@ -107,6 +106,14 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 		if err != nil {
 			return err
 		}
+
+		if server.FailureCount >= model.MaxFailureCount {
+			log.Info("server %v reconnected", server.Name)
+			_ = AddFeedServer(wtx, server, ServerActionReconnect)
+		}
+		server.FailureCount = 0
+		server.LastSeen = time.Now()
+
 		return bkt.Put([]byte(server.Ticket), b)
 	}
 	if wtx != nil {
