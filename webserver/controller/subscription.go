@@ -18,7 +18,7 @@ import (
 
 const PasswordReserve = "__SWEETLISA__"
 
-func NameToShow(server model.Server) string {
+func NameToShow(server model.Server, showQuota bool) string {
 	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
 		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
@@ -41,7 +41,7 @@ func NameToShow(server model.Server) string {
 	}
 	fRemainingGiB := float64(remaining[0]) / 1024 / 1024
 	// do not show if there is adequate bandwidth
-	if fRemainingGiB > 500 {
+	if fRemainingGiB > 500 && !showQuota {
 		return server.Name
 	}
 	fields := regexp.MustCompile(`^\[(.+)]\s*(.+)$`).FindStringSubmatch(server.Name)
@@ -118,7 +118,23 @@ func GetSubscription(c *gin.Context) {
 	sort.Slice(servers, func(i, j int) bool {
 		return servers[i].Name < servers[j].Name
 	})
-	// generate keys
+
+	// parse flags
+	flags := strings.Split(c.Param("flags"), ",")
+	var v4v6Mask uint8
+	var showQuota bool
+	for _, flag := range flags {
+		switch flag {
+		case "4":
+			v4v6Mask |= 1 << 0
+		case "6":
+			v4v6Mask |= 1 << 1
+		case "quota":
+			showQuota = true
+		}
+	}
+
+	// generate sip008
 	var sip008 = model.SIP008{
 		Version: 1,
 	}
@@ -159,7 +175,7 @@ func GetSubscription(c *gin.Context) {
 			}
 			sip008.Servers = append(sip008.Servers, model.SIP008Server{
 				Id:         id,
-				Remarks:    NameToShow(server),
+				Remarks:    NameToShow(server, showQuota),
 				Server:     host,
 				ServerPort: server.Port,
 				Password:   arg.Password,
@@ -170,6 +186,7 @@ func GetSubscription(c *gin.Context) {
 	sort.Slice(relays, func(i, j int) bool {
 		return relays[i].Name < relays[j].Name
 	})
+
 	for _, relay := range relays {
 		for _, svr := range svrs {
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
@@ -182,7 +199,7 @@ func GetSubscription(c *gin.Context) {
 				}
 				sip008.Servers = append(sip008.Servers, model.SIP008Server{
 					Id:         id,
-					Remarks:    fmt.Sprintf("%v -> %v", NameToShow(relay), NameToShow(svr)),
+					Remarks:    fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
 					Server:     host,
 					ServerPort: relay.Port,
 					Password:   arg.Password,
@@ -191,26 +208,27 @@ func GetSubscription(c *gin.Context) {
 			}
 		}
 	}
-	switch filter := c.Param("filter"); filter {
-	case "4", "6":
-		var servers []string
-		for _, s := range sip008.Servers {
-			servers = append(servers, s.Server)
-		}
-		typ := ServerIpTypes(servers)
-		var filtered []model.SIP008Server
-		for _, s := range sip008.Servers {
-			if s.Password == PasswordReserve {
-				filtered = append(filtered, s)
-				continue
-			}
-			if filter == "4" && typ[s.Server]&1 == 1 {
-				filtered = append(filtered, s)
-			} else if filter == "6" && typ[s.Server]&2 == 2 {
-				filtered = append(filtered, s)
-			}
-		}
-		sip008.Servers = filtered
+	if v4v6Mask != 0 {
+		sip008.Servers = filterV4V6(sip008, v4v6Mask)
 	}
+
 	c.JSON(http.StatusOK, sip008)
+}
+
+func filterV4V6(sip008 model.SIP008, v4v6Mask uint8) (filtered []model.SIP008Server) {
+	var servers []string
+	for _, s := range sip008.Servers {
+		servers = append(servers, s.Server)
+	}
+	typ := ServerIpTypes(servers)
+	for _, s := range sip008.Servers {
+		if s.Password == PasswordReserve {
+			filtered = append(filtered, s)
+			continue
+		}
+		if typ[s.Server]&v4v6Mask > 0 {
+			filtered = append(filtered, s)
+		}
+	}
+	return filtered
 }
