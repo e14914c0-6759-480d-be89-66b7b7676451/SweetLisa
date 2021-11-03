@@ -57,7 +57,7 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 	if err != nil {
 		return nil, err
 	}
-	crw, err := ss.NewSSConn(conn.(ss.DuplexConn), s.cipherConf, s.masterKey)
+	crw, err := ss.NewSSConn(conn, s.cipherConf, s.masterKey)
 	if err != nil {
 		conn.Close()
 		return nil, err
