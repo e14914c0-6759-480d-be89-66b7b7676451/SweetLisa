@@ -2,7 +2,25 @@
 
 Center side infrastructure for RDA.
 
-## Prepare
+## Special Usage
+
+**Subscription Flags**
+
+Flags can be added to the subscription link.
+
+```
+# filter out ipv4
+https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/4
+
+# filter out ipv6, and force to show the quotas
+https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/6,quota
+```
+
+## Setup
+
+You can set up your own SweetLisa at your own machines.
+
+### Prepare
 
 **Domain**
 
@@ -22,7 +40,7 @@ Center side infrastructure for RDA.
 1. A bot token from @BotFather.
 2. An anonymous channel with your bot. 
 
-## Systemd
+### Systemd
 
 ```unit file (systemd)
 # /etc/systemd/system/SweetLisa.service
