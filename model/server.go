@@ -43,6 +43,8 @@ type Server struct {
 	Argument Argument
 	// BandwidthLimit is the limit of bandwidth
 	BandwidthLimit BandwidthLimit
+	// NoRelay is a flag to tell SweetLisa that the server do not want to be relayed
+	NoRelay bool
 
 	// FailureCount is the number of consecutive failed pings
 	FailureCount int

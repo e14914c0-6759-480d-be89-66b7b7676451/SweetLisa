@@ -36,15 +36,17 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 		// get serverObj of server
 		bServer := bktServer.Get([]byte(serverTicket))
 		if bServer != nil {
-			var serverObj model.Server
-			if err := jsoniter.Unmarshal(bServer, &serverObj); err != nil {
-				return err
-			}
-			if serverTicketObj.Type == model.TicketTypeServer {
-				if serverObj.BandwidthLimit.Exhausted() {
-					// do not generate Passages for exhausted servers
-					return nil
-				}
+			log.Warn("the server has not register yet: key %v", serverTicket)
+			return db.ErrKeyNotFound
+		}
+		var serverObj model.Server
+		if err := jsoniter.Unmarshal(bServer, &serverObj); err != nil {
+			return err
+		}
+		if serverTicketObj.Type == model.TicketTypeServer {
+			if serverObj.BandwidthLimit.Exhausted() {
+				// do not generate Passages for exhausted servers
+				return nil
 			}
 		}
 
@@ -108,21 +110,26 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket)},
 				})
 			}
-			for _, relay := range relays {
-				if relay.FailureCount >= model.MaxFailureCount || relay.BandwidthLimit.Exhausted() {
-					continue
+			if !serverObj.NoRelay {
+				for _, relay := range relays {
+					if relay.FailureCount >= model.MaxFailureCount || relay.BandwidthLimit.Exhausted() {
+						continue
+					}
+					passages = append(passages, model.Passage{
+						In: model.In{
+							From:     relay.Name,
+							Argument: model.GetUserArgument(serverTicket, relay.Ticket),
+						},
+					})
 				}
-				passages = append(passages, model.Passage{
-					In: model.In{
-						From:     relay.Name,
-						Argument: model.GetUserArgument(serverTicket, relay.Ticket),
-					},
-				})
 			}
 		case model.TicketTypeRelay:
 			// relay inbounds are for users but related with servers (n*m)
 			// relay outbounds are for servers
 			for _, svr := range servers {
+				if svr.NoRelay {
+					continue
+				}
 				if svr.FailureCount >= model.MaxFailureCount || svr.BandwidthLimit.Exhausted() {
 					continue
 				}
