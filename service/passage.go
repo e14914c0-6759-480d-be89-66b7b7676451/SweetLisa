@@ -35,8 +35,8 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 		}
 		// get serverObj of server
 		bServer := bktServer.Get([]byte(serverTicket))
-		if bServer != nil {
-			log.Warn("the server has not register yet: key %v", serverTicket)
+		if bServer == nil {
+			log.Info("the server has not register yet: key %v", serverTicket)
 			return db.ErrKeyNotFound
 		}
 		var serverObj model.Server

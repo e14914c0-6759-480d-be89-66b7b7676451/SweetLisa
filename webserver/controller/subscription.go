@@ -189,6 +189,9 @@ func GetSubscription(c *gin.Context) {
 
 	for _, relay := range relays {
 		for _, svr := range svrs {
+			if svr.NoRelay {
+				continue
+			}
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
 			for j, host := range strings.Split(relay.Hosts, ",") {
 				var id string
