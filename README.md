@@ -27,8 +27,8 @@ You can set up your own SweetLisa at your own machines.
 1. A domain like `sweetlisa.tuta.cc`.
 2. Proxy your domain by the CDN (we only support Cloudflare now).
 3. Set URL Rewrite rules to your SweetLisa domain in Transform Rules in Cloudflare:
-   1. `(ip.geoip.country eq "CN" and http.user_agent ne "BitterJohn" and http.host eq "yourdomain")`
-   2. `(ip.geoip.country eq "CN" and http.user_agent ne "BitterJohn" and http.host eq "yourdomain" and not http.request.uri.path contains "/api/")`
+   1. `(ip.geoip.country eq "CN" and http.user_agent ne "BitterJohn" and http.host eq "yourdomain")`, path rewrite to `block-cn`, and query rewrite to empty
+   2. `(ip.geoip.country eq "CN" and http.user_agent ne "BitterJohn" and http.host eq "yourdomain" and not http.request.uri.path contains "/api/")`, path rewrite to `block-cn`, and query rewrite to empty
 4. Set Page Rules to your SweetLisa domain in Cloudflare:
    1. `yourdomain/block-cn-html,Forwarding URL,https://e14914c0-6759-480d-be89-66b7b7676451.github.io/blocked-page/cn.html`
    2. `yourdomain/block-cn,Forwarding URL,https://e14914c0-6759-480d-be89-66b7b7676451.github.io/blocked-page/cn.txt`
