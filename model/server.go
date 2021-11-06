@@ -93,40 +93,26 @@ func (l *BandwidthLimit) Exhausted() bool {
 }
 
 func (l *BandwidthLimit) Update(r BandwidthLimit) {
-	// 03/31 + 1 month = 05/01, 05/01 + 1 month = 06/01
-	// but 03/31 + 2 months = 05/31
-
-	// 7th and 8th months have 31 days
-	if !l.ResetDay.IsZero() && l.ResetDay.In(r.ResetDay.Location()).Day() == r.ResetDay.Day() {
-		// update the statistic data
-		l.DownlinkLimitGiB = r.DownlinkLimitGiB
-		l.UplinkLimitGiB = r.UplinkLimitGiB
-		l.TotalLimitGiB = r.TotalLimitGiB
-		l.DownlinkKiB = r.DownlinkKiB
-		l.UplinkKiB = r.UplinkKiB
-	} else if l.ResetDay.IsZero() {
+	if l.ResetDay.IsZero() {
 		// (re-)initiate
-		*l = BandwidthLimit{
-			ResetDay: time.Date(2000, 7, r.ResetDay.Day(),
-				0, 0, 0, 0, r.ResetDay.Location()),
-			UplinkLimitGiB:     r.UplinkLimitGiB,
-			DownlinkLimitGiB:   r.DownlinkLimitGiB,
-			TotalLimitGiB:      r.TotalLimitGiB,
-			UplinkKiB:          r.UplinkKiB,
-			DownlinkKiB:        r.DownlinkKiB,
-			UplinkInitialKiB:   r.UplinkKiB,
-			DownlinkInitialKiB: r.DownlinkKiB,
-		}
-		if r.ResetDay.IsZero() {
-			l.ResetDay = time.Time{}
-		}
+		l.ResetMonth = -1
+		l.UplinkInitialKiB = r.UplinkKiB
+		l.DownlinkInitialKiB = r.DownlinkKiB
+	}
+	l.DownlinkLimitGiB = r.DownlinkLimitGiB
+	l.UplinkLimitGiB = r.UplinkLimitGiB
+	l.TotalLimitGiB = r.TotalLimitGiB
+	l.DownlinkKiB = r.DownlinkKiB
+	l.UplinkKiB = r.UplinkKiB
+	if r.ResetDay.IsZero() {
+		l.ResetDay = time.Time{}
 	} else {
-		if r.ResetDay.IsZero() {
-			l.ResetDay = time.Time{}
-		} else {
-			l.ResetDay = time.Date(2000, 7, r.ResetDay.Day(),
-				0, 0, 0, 0, r.ResetDay.Location())
-		}
+		// 03/31 + 1 month = 05/01, 05/01 + 1 month = 06/01
+		// but 03/31 + 2 months = 05/31
+
+		// 7th and 8th months have 31 days
+		l.ResetDay = time.Date(2000, 7, r.ResetDay.Day(),
+			0, 0, 0, 0, r.ResetDay.Location())
 	}
 }
 

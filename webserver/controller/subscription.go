@@ -26,9 +26,14 @@ func NameToShow(server model.Server, showQuota bool) string {
 			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
 	}
 	if server.BandwidthLimit.UplinkLimitGiB+server.BandwidthLimit.DownlinkLimitGiB > 0 {
-		remaining = append(remaining,
-			server.BandwidthLimit.UplinkLimitGiB*1024*1024-(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)+
-				server.BandwidthLimit.DownlinkLimitGiB*1024*1024-(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
+		var r int64
+		if server.BandwidthLimit.UplinkLimitGiB > 0 {
+			r += server.BandwidthLimit.UplinkLimitGiB*1024*1024 - (server.BandwidthLimit.UplinkKiB - server.BandwidthLimit.UplinkInitialKiB)
+		}
+		if server.BandwidthLimit.DownlinkLimitGiB > 0 {
+			r += server.BandwidthLimit.DownlinkLimitGiB*1024*1024 - (server.BandwidthLimit.DownlinkKiB - server.BandwidthLimit.DownlinkInitialKiB)
+		}
+		remaining = append(remaining, r)
 	}
 	if len(remaining) == 0 {
 		return server.Name
