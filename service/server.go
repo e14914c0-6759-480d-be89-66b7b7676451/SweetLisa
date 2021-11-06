@@ -99,21 +99,21 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 				return err
 			}
 		}
+		if old.FailureCount >= model.MaxFailureCount {
+			log.Info("server %v reconnected", server.Name)
+			_ = AddFeedServer(wtx, server, ServerActionReconnect)
+		}
 		old.BandwidthLimit.Update(server.BandwidthLimit)
 		server.BandwidthLimit = old.BandwidthLimit
+
+		server.FailureCount = 0
+		server.LastSeen = time.Now()
+		server.SyncNextSeen = false
 
 		b, err := jsoniter.Marshal(&server)
 		if err != nil {
 			return err
 		}
-
-		if server.FailureCount >= model.MaxFailureCount {
-			log.Info("server %v reconnected", server.Name)
-			_ = AddFeedServer(wtx, server, ServerActionReconnect)
-		}
-		server.FailureCount = 0
-		server.LastSeen = time.Now()
-
 		return bkt.Put([]byte(server.Ticket), b)
 	}
 	if wtx != nil {
