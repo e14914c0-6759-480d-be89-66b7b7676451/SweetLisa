@@ -34,7 +34,7 @@ const (
 	FeedFormatJSON
 )
 
-func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat) (string, error) {
+func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat, fromTelegram bool) (string, error) {
 	var feedItems []*feeds.Item
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketFeed))
@@ -70,6 +70,11 @@ func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat) (string,
 	sort.SliceStable(feedItems, func(i, j int) bool {
 		return feedItems[i].Created.After(feedItems[j].Created)
 	})
+	if fromTelegram {
+		for i := range feedItems {
+			feedItems[i].Title = "#sheet " + feedItems[i].Title
+		}
+	}
 	feed := feeds.Feed{
 		Title:       "Republic of Developers Airline (aka RDA)",
 		Link:        &feeds.Link{Href: chatLink.String()},

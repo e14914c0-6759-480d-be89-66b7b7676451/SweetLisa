@@ -13,13 +13,15 @@ func GetChatFeed(ctx *gin.Context) {
 		str string
 		err error
 	)
+	// https://github.com/iovxw/rssbot/blob/6a2a08c51d88f29073ff3a929566d9924134a585/src/utlis.rs#L145-L153
+	fromRssBot := strings.Contains(ctx.GetHeader("User-Agent"), "https://t.me/")
 	switch strings.ToLower(ext) {
 	case ".atom":
-		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatAtom)
+		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatAtom, fromRssBot)
 	case ".rss":
-		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatRSS)
+		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatRSS, fromRssBot)
 	case ".json":
-		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatJSON)
+		str, err = service.GetChatFeed(nil, chatIdentifier, service.FeedFormatJSON, fromRssBot)
 	default:
 		common.ResponseBadRequestError(ctx)
 		return
