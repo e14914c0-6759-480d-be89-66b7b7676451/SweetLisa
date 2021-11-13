@@ -104,6 +104,9 @@ func GetSubscription(c *gin.Context) {
 			showQuota = true
 		}
 	}
+	if v4v6Mask == 0 {
+		v4v6Mask = 1 | 2
+	}
 
 	// generate sharing link
 	var relays []model.Server
