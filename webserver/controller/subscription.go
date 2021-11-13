@@ -1,12 +1,17 @@
 package controller
 
 import (
+	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model/sharing_link"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/dnscache"
+	"inet.af/netaddr"
 	"net"
 	"net/http"
 	"regexp"
@@ -18,7 +23,9 @@ import (
 
 const PasswordReserve = "__SWEETLISA__"
 
-func NameToShow(server model.Server, showQuota bool) string {
+var cachedResolver = dnscache.Resolver{}
+
+func NameToShow(server *model.Server, showQuota bool) string {
 	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
 		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
@@ -56,47 +63,6 @@ func NameToShow(server model.Server, showQuota bool) string {
 	}
 	// Racknerd -> [472.7GiB] Racknerd
 	return fmt.Sprintf("[%.1fGiB] %v", fRemainingGiB, server.Name)
-}
-
-func ServerIpTypes(servers []string) map[string]uint8 {
-	servers = common.Deduplicate(servers)
-	var dm []string
-	var mu sync.Mutex
-	var typ = make(map[string]uint8)
-	for _, s := range servers {
-		if ip := net.ParseIP(s); ip == nil {
-			dm = append(dm, s)
-		} else if ip.To4() != nil {
-			typ[s] = 1
-		} else {
-			typ[s] = 2
-		}
-	}
-	var wg sync.WaitGroup
-	for _, d := range dm {
-		wg.Add(1)
-		go func(d string) {
-			defer wg.Done()
-			addrs, err := net.LookupHost(d)
-			if err != nil {
-				mu.Lock()
-				typ[d] = 1 | 2
-				mu.Unlock()
-				return
-			}
-			for _, a := range addrs {
-				mu.Lock()
-				if net.ParseIP(a).To4() != nil {
-					typ[d] |= 1
-				} else {
-					typ[d] |= 2
-				}
-				mu.Unlock()
-			}
-		}(d)
-	}
-	wg.Wait()
-	return typ
 }
 
 // GetSubscription returns the user's subscription
@@ -139,18 +105,7 @@ func GetSubscription(c *gin.Context) {
 		}
 	}
 
-	// generate sip008
-	var sip008 = model.SIP008{
-		Version: 1,
-	}
-	sip008.Servers = append(sip008.Servers, model.SIP008Server{
-		Id:         "00000000-0000-0000-0000-000000000000",
-		Remarks:    fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02 15:04 MST")),
-		Server:     "127.0.0.1",
-		ServerPort: 1024,
-		Password:   PasswordReserve,
-		Method:     "chacha20-ietf-poly1305",
-	})
+	// generate sharing link
 	var relays []model.Server
 	var svrs []model.Server
 	for _, server := range servers {
@@ -163,80 +118,188 @@ func GetSubscription(c *gin.Context) {
 			log.Warn("GetSubscription: GetValidTicketObj: %v", err)
 			continue
 		}
-		if svrTic.Type == model.TicketTypeRelay {
+		switch svrTic.Type {
+		case model.TicketTypeRelay:
 			relays = append(relays, server)
-			continue
-		}
-		if svrTic.Type == model.TicketTypeServer {
+		case model.TicketTypeServer:
 			svrs = append(svrs, server)
 		}
-		arg := model.GetUserArgument(server.Ticket, ticket)
-		for j, host := range strings.Split(server.Hosts, ",") {
-			var id string
-			if j == 0 {
-				id = common.StringToUUID5(arg.Password)
-			} else {
-				id = common.StringToUUID5(arg.Password + ":" + strconv.Itoa(j))
-			}
-			sip008.Servers = append(sip008.Servers, model.SIP008Server{
-				Id:         id,
-				Remarks:    NameToShow(server, showQuota),
-				Server:     host,
-				ServerPort: server.Port,
-				Password:   arg.Password,
-				Method:     arg.Method,
-			})
-		}
 	}
+	sort.Slice(svrs, func(i, j int) bool {
+		return svrs[i].Name < svrs[j].Name
+	})
 	sort.Slice(relays, func(i, j int) bool {
 		return relays[i].Name < relays[j].Name
 	})
 
+	maxCnt := 1 // alert node
+	cnt := 1
+	for _, svr := range svrs {
+		maxCnt += len(strings.Split(svr.Hosts, ","))
+	}
 	for _, relay := range relays {
 		for _, svr := range svrs {
 			if svr.NoRelay {
 				continue
 			}
-			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket)
-			for j, host := range strings.Split(relay.Hosts, ",") {
-				var id string
-				if j == 0 {
-					id = common.StringToUUID5(arg.Password)
-				} else {
-					id = common.StringToUUID5(arg.Password + ":" + strconv.Itoa(j))
+			maxCnt += len(strings.Split(relay.Hosts, ","))
+		}
+	}
+	var mutex sync.Mutex
+	lines := make([]string, maxCnt)
+
+	alert := sharing_link.SIP002{
+		Name:     fmt.Sprintf("ExpireAt: %v", ticObj.ExpireAt.Format("2006-01-02 15:04 MST")),
+		Server:   "127.0.0.1",
+		Port:     1024,
+		Password: PasswordReserve,
+		Cipher:   "chacha20-ietf-poly1305",
+		Plugin:   sharing_link.SIP003{},
+	}
+	lines[0] = alert.ExportToURL()
+
+	var wg sync.WaitGroup
+	for i, svr := range svrs {
+		arg := model.GetUserArgument(svr.Ticket, ticket, svr.Argument.Protocol)
+		for _, host := range strings.Split(svr.Hosts, ",") {
+			wg.Add(1)
+			go func(cnt int, host string, svr *model.Server) {
+				defer wg.Done()
+				// it costs time
+				if !ValidNetwork(host, v4v6Mask) {
+					return
 				}
-				sip008.Servers = append(sip008.Servers, model.SIP008Server{
-					Id:         id,
-					Remarks:    fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
-					Server:     host,
-					ServerPort: relay.Port,
-					Password:   arg.Password,
-					Method:     arg.Method,
-				})
+				log.Trace("svr: protocol: %v, host: %v, passwd: %v", arg.Protocol, host, arg.Password)
+				switch arg.Protocol {
+				case model.ProtocolShadowsocks:
+					log.Trace("shadowsocks")
+					s := sharing_link.SIP002{
+						Name:     NameToShow(svr, showQuota),
+						Server:   host,
+						Port:     svr.Port,
+						Password: arg.Password,
+						Cipher:   arg.Method,
+						Plugin:   sharing_link.SIP003{},
+					}
+					mutex.Lock()
+					lines[cnt] = s.ExportToURL()
+					mutex.Unlock()
+				case model.ProtocolVMessTCP:
+					log.Trace("vmess")
+					s := sharing_link.V2RayN{
+						Ps:   NameToShow(svr, showQuota),
+						Add:  host,
+						Port: strconv.Itoa(svr.Port),
+						ID:   arg.Password,
+						Aid:  "0",
+						Net:  "tcp",
+						Type: "none",
+						V:    "2",
+					}
+					mutex.Lock()
+					lines[cnt] = s.ExportToURL()
+					mutex.Unlock()
+				default:
+					log.Warn("unexpected protocol: %v", arg.Protocol)
+				}
+			}(cnt, host, &svrs[i])
+			cnt++
+		}
+	}
+
+	for i, relay := range relays {
+		for j, svr := range svrs {
+			if svr.NoRelay {
+				continue
+			}
+			// TODO: splice different protocols
+			if svr.Argument.Protocol != relay.Argument.Protocol {
+				continue
+			}
+			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket, relay.Argument.Protocol)
+			for _, host := range strings.Split(relay.Hosts, ",") {
+				wg.Add(1)
+				go func(cnt int, host string, relay *model.Server, svr *model.Server) {
+					defer wg.Done()
+					// it costs time
+					if !ValidNetwork(host, v4v6Mask) {
+						return
+					}
+					switch arg.Protocol {
+					case model.ProtocolShadowsocks:
+						s := sharing_link.SIP002{
+							Name:     fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
+							Server:   host,
+							Port:     relay.Port,
+							Password: arg.Password,
+							Cipher:   arg.Method,
+							Plugin:   sharing_link.SIP003{},
+						}
+						mutex.Lock()
+						lines[cnt] = s.ExportToURL()
+						mutex.Unlock()
+					case model.ProtocolVMessTCP:
+						s := sharing_link.V2RayN{
+							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
+							Add:  host,
+							Port: strconv.Itoa(relay.Port),
+							ID:   arg.Password,
+							Aid:  "0",
+							Net:  "tcp",
+							Type: "none",
+							V:    "2",
+						}
+						mutex.Lock()
+						lines[cnt] = s.ExportToURL()
+						mutex.Unlock()
+					default:
+						log.Warn("unexpected protocol: %v", arg.Protocol)
+					}
+				}(cnt, host, &relays[i], &svrs[j])
+				cnt++
 			}
 		}
 	}
-	if v4v6Mask != 0 {
-		sip008.Servers = filterV4V6(sip008, v4v6Mask)
-	}
-
-	c.JSON(http.StatusOK, sip008)
-}
-
-func filterV4V6(sip008 model.SIP008, v4v6Mask uint8) (filtered []model.SIP008Server) {
-	var servers []string
-	for _, s := range sip008.Servers {
-		servers = append(servers, s.Server)
-	}
-	typ := ServerIpTypes(servers)
-	for _, s := range sip008.Servers {
-		if s.Password == PasswordReserve {
-			filtered = append(filtered, s)
+	wg.Wait()
+	// remove empty lines
+	var i int
+	for j := 0; j < len(lines); j++ {
+		if lines[j] == "" {
 			continue
 		}
-		if typ[s.Server]&v4v6Mask > 0 {
-			filtered = append(filtered, s)
+		if i != j {
+			lines[i] = lines[j]
 		}
+		i++
 	}
-	return filtered
+	lines = lines[:i]
+	c.String(http.StatusOK, base64.StdEncoding.EncodeToString([]byte(strings.Join(lines, "\n"))))
+}
+
+func ValidNetwork(server string, v4v6Mask uint8) (ok bool) {
+	return ServerNetType(server)&v4v6Mask > 0
+}
+
+func ServerNetType(server string) (typ uint8) {
+	if ip, err := netaddr.ParseIP(server); err != nil {
+		addrs, err := cachedResolver.LookupHost(context.Background(), server)
+		if err != nil {
+			// cannot resolve
+			return 1 | 2
+		}
+		for _, a := range addrs {
+			if net.ParseIP(a).To4() != nil {
+				typ |= 1
+			} else {
+				typ |= 2
+			}
+		}
+	} else if ip.IsLoopback() {
+		typ = 1 | 2
+	} else if ip.Is4() {
+		typ = 1
+	} else {
+		typ = 2
+	}
+	return typ
 }

@@ -107,7 +107,7 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 			// server inbounds are for users and relays
 			for _, ticket := range userTickets {
 				passages = append(passages, model.Passage{
-					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket)},
+					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket, serverObj.Argument.Protocol)},
 				})
 			}
 			if !serverObj.NoRelay {
@@ -115,10 +115,14 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 					if relay.FailureCount >= model.MaxFailureCount || relay.BandwidthLimit.Exhausted() {
 						continue
 					}
+					// TODO: splice different protocols
+					if relay.Argument.Protocol != serverObj.Argument.Protocol {
+						continue
+					}
 					passages = append(passages, model.Passage{
 						In: model.In{
 							From:     relay.Name,
-							Argument: model.GetUserArgument(serverTicket, relay.Ticket),
+							Argument: model.GetUserArgument(serverTicket, relay.Ticket, serverObj.Argument.Protocol),
 						},
 					})
 				}
@@ -133,9 +137,13 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 				if svr.FailureCount >= model.MaxFailureCount || svr.BandwidthLimit.Exhausted() {
 					continue
 				}
-				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket)
+				// TODO: splice different protocols
+				if svr.Argument.Protocol != serverObj.Argument.Protocol {
+					continue
+				}
+				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket, serverObj.Argument.Protocol)
 				for _, userTicket := range userTickets {
-					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket)
+					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket, serverObj.Argument.Protocol)
 					passages = append(passages, model.Passage{
 						In: model.In{Argument: argUserRelayServer},
 						Out: &model.Out{

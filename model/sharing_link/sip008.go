@@ -1,4 +1,4 @@
-package model
+package sharing_link
 
 type SIP008 struct {
 	Version        int            `json:"version"`

@@ -18,7 +18,7 @@ type Manager interface {
 	SyncPassages(ctx context.Context, passages []model.Passage) (err error)
 }
 
-type Creator func(conn Dialer, arg ManageArgument) Manager
+type Creator func(conn Dialer, arg ManageArgument) (Manager, error)
 
 var Mapper = make(map[string]Creator)
 
@@ -31,5 +31,5 @@ func NewManager(dialer Dialer, arg ManageArgument) (Manager, error) {
 	if !ok {
 		return nil, fmt.Errorf("no manager creator registered for %v", strconv.Quote(string(arg.Protocol)))
 	}
-	return creator(dialer, arg), nil
+	return creator(dialer, arg)
 }

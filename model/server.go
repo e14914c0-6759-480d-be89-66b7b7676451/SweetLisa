@@ -18,7 +18,7 @@ type Protocol string
 
 const (
 	ProtocolVMessTCP    Protocol = "vmess"
-	ProtocolShadowsocks          = "shadowsocks"
+	ProtocolShadowsocks Protocol = "shadowsocks"
 )
 
 func (p Protocol) Valid() bool {
@@ -135,28 +135,48 @@ func GetFirstHost(host string) string {
 	return strings.SplitN(host, ",", 2)[0]
 }
 
-func GetUserArgument(serverTicket, userTicket string) Argument {
-	h := sha1.New()
-	h.Write([]byte(serverTicket))
-	h.Write([]byte(userTicket))
-	b := h.Sum(nil)
-	return Argument{
-		Protocol: ProtocolShadowsocks,
-		Password: common.Base62Encoder.Encode(b)[:21],
-		Method:   "chacha20-ietf-poly1305",
+func GetUserArgument(serverTicket, userTicket string, protocol Protocol) Argument {
+	switch protocol {
+	case ProtocolShadowsocks:
+		h := sha1.New()
+		h.Write([]byte(serverTicket))
+		h.Write([]byte(userTicket))
+		b := h.Sum(nil)
+		return Argument{
+			Protocol: protocol,
+			Password: common.Base62Encoder.Encode(b)[:21],
+			Method:   "chacha20-ietf-poly1305",
+		}
+	case ProtocolVMessTCP:
+		return Argument{
+			Protocol: protocol,
+			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
+		}
+	default:
+		return Argument{Protocol: ProtocolShadowsocks}
 	}
 }
 
-func GetRelayUserArgument(serverTicket, relayTicket, userTicket string) Argument {
-	h := sha1.New()
-	h.Write([]byte(serverTicket))
-	h.Write([]byte(relayTicket))
-	h.Write([]byte(userTicket))
-	b := h.Sum(nil)
-	return Argument{
-		Protocol: ProtocolShadowsocks,
-		Password: common.Base62Encoder.Encode(b)[:21],
-		Method:   "chacha20-ietf-poly1305",
+func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, protocol Protocol) Argument {
+	switch protocol {
+	case ProtocolShadowsocks:
+		h := sha1.New()
+		h.Write([]byte(serverTicket))
+		h.Write([]byte(relayTicket))
+		h.Write([]byte(userTicket))
+		b := h.Sum(nil)
+		return Argument{
+			Protocol: protocol,
+			Password: common.Base62Encoder.Encode(b)[:21],
+			Method:   "chacha20-ietf-poly1305",
+		}
+	case ProtocolVMessTCP:
+		return Argument{
+			Protocol: protocol,
+			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
+		}
+	default:
+		return Argument{Protocol: ProtocolShadowsocks}
 	}
 }
 

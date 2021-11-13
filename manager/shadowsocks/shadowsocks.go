@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
+	protocol "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server"
 	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
@@ -37,7 +38,7 @@ type Shadowsocks struct {
 	cipherConf ss.CipherConf
 }
 
-func New(dialer manager.Dialer, arg manager.ManageArgument) manager.Manager {
+func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, error) {
 	cipherConf := ss.CiphersConf[arg.Argument.Method]
 	masterKey := ss.EVPBytesToKey(arg.Argument.Password, cipherConf.KeyLen)
 	return &Shadowsocks{
@@ -45,7 +46,7 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) manager.Manager {
 		arg:        arg,
 		masterKey:  masterKey,
 		cipherConf: cipherConf,
-	}
+	}, nil
 }
 
 func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte) (resp []byte, err error) {
@@ -71,7 +72,7 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 }
 
 func (s *Shadowsocks) Ping(ctx context.Context) (resp []byte, err error) {
-	resp, err = s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdPing}, []byte("ping"))
+	resp, err = s.GetTurn(ctx, ss.Metadata{Cmd: protocol.MetadataCmdPing}, []byte("ping"))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (s *Shadowsocks) SyncPassages(ctx context.Context, passages []model.Passage
 	if err != nil {
 		return err
 	}
-	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: ss.MetadataCmdSyncPassages}, body)
+	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: protocol.MetadataCmdSyncPassages}, body)
 	if err != nil {
 		return err
 	}
