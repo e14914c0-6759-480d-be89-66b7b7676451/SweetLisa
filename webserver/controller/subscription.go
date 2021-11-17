@@ -215,10 +215,6 @@ func GetSubscription(c *gin.Context) {
 			if svr.NoRelay {
 				continue
 			}
-			// TODO: splice different protocols
-			if svr.Argument.Protocol != relay.Argument.Protocol {
-				continue
-			}
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket, relay.Argument.Protocol)
 			for _, host := range strings.Split(relay.Hosts, ",") {
 				wg.Add(1)

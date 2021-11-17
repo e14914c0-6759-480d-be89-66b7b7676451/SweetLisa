@@ -99,7 +99,7 @@ func PostRegister(c *gin.Context) {
 			return
 		}
 	}(req, ticObj.ChatIdentifier)
-	log.Info("Received a register request from %v: Chat: %v, Type: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type)
+	log.Info("Received a register request from %v: Chat: %v, Type: %v, Protocol: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type, req.Argument.Protocol)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
 	common.ResponseSuccess(c, passages)
 }

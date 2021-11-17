@@ -145,9 +145,9 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 	var typ string
 	switch tic.Type {
 	case model.TicketTypeServer:
-		typ = "Endpoint Server"
+		typ = "Endpoint"
 	case model.TicketTypeRelay:
-		typ = "Relay Server"
+		typ = "Relay"
 	}
 	u := url.URL{
 		Scheme: "https",
