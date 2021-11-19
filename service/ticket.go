@@ -117,11 +117,12 @@ func RevokeTicket(wtx *bolt.Tx, ticket string, chatIdentifier string) (err error
 		if ticObj.ChatIdentifier != chatIdentifier {
 			return ErrInvalidTicket
 		}
-		// server ticket never expire
 		switch ticObj.Type {
 		case model.TicketTypeServer, model.TicketTypeRelay:
 			svrBkt := tx.Bucket([]byte(model.BucketServer))
 			if svrBkt != nil {
+				// some server/relay type tickets have not yet registered.
+				// so ignore the error
 				_ = svrBkt.Delete([]byte(ticket))
 			}
 		default:
