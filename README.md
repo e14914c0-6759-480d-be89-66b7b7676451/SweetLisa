@@ -16,6 +16,14 @@ https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/4
 https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/6,quota
 ```
 
+**Telegram Commands**
+
+In the anonymous channel, you can send following commands:
+
+1. `/sweetlisa`: show the link of management.
+2. `/verify <verification code>`: verify qualification.
+3. `/revoke <ticket>`: revoke your ticket immediately.
+
 ## Setup
 
 You can set up your own SweetLisa at your own machines.
