@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
-	protocol "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server"
-	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/shadowsocks"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
+	ss "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
+	"io"
 	"net"
 	"time"
 )
@@ -49,7 +51,7 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 	}, nil
 }
 
-func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte) (resp []byte, err error) {
+func (s *Shadowsocks) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []byte) (resp []byte, err error) {
 	dialer := s.dialer
 	if dialer == nil {
 		dialer = &net.Dialer{}
@@ -58,9 +60,16 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 	if err != nil {
 		return nil, err
 	}
-	crw, err := ss.NewTCPConn(conn, s.cipherConf, s.masterKey, nil)
+	defer conn.Close()
+	crw, err := ss.NewTCPConn(conn, protocol.Metadata{
+		Type:     protocol.MetadataTypeMsg,
+		Cmd:      cmd,
+		Network:  "tcp",
+		Cipher:   s.arg.Argument.Method,
+		IsClient: false,
+	}, s.masterKey, nil)
+
 	if err != nil {
-		conn.Close()
 		return nil, err
 	}
 	defer crw.Close()
@@ -68,11 +77,23 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, addr ss.Metadata, body []byte
 		<-ctx.Done()
 		crw.SetDeadline(time.Now())
 	}()
-	return crw.GetTurn(addr, body)
+	if _, err = crw.Write(body); err != nil {
+		return nil, err
+	}
+
+	metadata, err := crw.ReadMetadata()
+	if err != nil {
+		return nil, err
+	}
+	resp = make([]byte, metadata.LenMsgBody&0xffffff)
+	if _, err := io.ReadFull(crw, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *Shadowsocks) Ping(ctx context.Context) (resp []byte, err error) {
-	resp, err = s.GetTurn(ctx, ss.Metadata{Cmd: protocol.MetadataCmdPing}, []byte("ping"))
+	resp, err = s.GetTurn(ctx, protocol.MetadataCmdPing, []byte("ping"))
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +105,8 @@ func (s *Shadowsocks) SyncPassages(ctx context.Context, passages []model.Passage
 	if err != nil {
 		return err
 	}
-	resp, err := s.GetTurn(ctx, ss.Metadata{Cmd: protocol.MetadataCmdSyncPassages}, body)
+	log.Trace("SyncPassages: to: %v, len(body): %v", s.arg.Host, len(body))
+	resp, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
 	if err != nil {
 		return err
 	}

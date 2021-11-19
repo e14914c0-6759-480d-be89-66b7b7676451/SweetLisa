@@ -6,11 +6,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
-	protocol "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/vmess"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol/vmess"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"io"
@@ -63,11 +64,13 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	}
 	defer conn.Close()
 	conn, err = vmess.NewConn(conn, vmess.Metadata{
-		Type:     vmess.MetadataTypeMsg,
-		Cmd:      cmd,
-		InsCmd:   vmess.InstructionCmdTCP,
-		Cipher:   vmess.CipherAES128GCM,
-		IsClient: true,
+		Metadata: protocol.Metadata{
+			Network:  "tcp",
+			Type:     protocol.MetadataTypeMsg,
+			Cmd:      cmd,
+			Cipher:   string(vmess.CipherAES128GCM),
+			IsClient: true,
+		},
 	}, s.cmdKey)
 	if err != nil {
 		return nil, err
@@ -108,6 +111,7 @@ func (s *VMess) SyncPassages(ctx context.Context, passages []model.Passage) (err
 	if err != nil {
 		return err
 	}
+	log.Trace("SyncPassages: to: %v, len(body): %v", s.arg.Host, len(body))
 	resp, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
 	if err != nil {
 		return err
