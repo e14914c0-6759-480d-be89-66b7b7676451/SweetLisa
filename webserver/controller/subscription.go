@@ -172,10 +172,10 @@ func GetSubscription(c *gin.Context) {
 				if !ValidNetwork(host, v4v6Mask) {
 					return
 				}
-				log.Trace("svr: protocol: %v, host: %v, passwd: %v", arg.Protocol, host, arg.Password)
+				//log.Trace("svr: protocol: %v, host: %v, passwd: %v", arg.Protocol, host, arg.Password)
 				switch arg.Protocol {
 				case model.ProtocolShadowsocks:
-					log.Trace("shadowsocks")
+					//log.Trace("shadowsocks")
 					s := sharing_link.SIP002{
 						Name:     NameToShow(svr, showQuota),
 						Server:   host,
@@ -188,7 +188,7 @@ func GetSubscription(c *gin.Context) {
 					lines[cnt] = s.ExportToURL()
 					mutex.Unlock()
 				case model.ProtocolVMessTCP:
-					log.Trace("vmess")
+					//log.Trace("vmess")
 					s := sharing_link.V2RayN{
 						Ps:   NameToShow(svr, showQuota),
 						Add:  host,
