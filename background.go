@@ -110,7 +110,7 @@ func GoBackgrounds() {
 					_ = service.AddFeedServer(wtx, server, service.ServerActionDisconnect)
 					time.AfterFunc(1*time.Second, func() {
 						// do not pass in tx here due to async
-						if e := service.ReqSyncPassagesByServer(nil, server.Ticket); e != nil {
+						if e := service.ReqSyncPassagesByServer(nil, server.Ticket, false); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
 						}
 					})
@@ -125,17 +125,20 @@ func GoBackgrounds() {
 		} else {
 			todo = func(wtx *bolt.Tx, b []byte) []byte {
 				var toSync bool
+				var onlySyncItSelf = true
 				var server model.Server
 				if err := jsoniter.Unmarshal(b, &server); err != nil {
 					return nil
 				}
 				if server.SyncNextSeen {
 					toSync = true
+					// onlySyncItSelf = true
 				}
 				if server.FailureCount >= model.MaxFailureCount {
 					log.Info("server %v reconnected", server.Name)
 					_ = service.AddFeedServer(wtx, server, service.ServerActionReconnect)
 					toSync = true
+					onlySyncItSelf = false
 				}
 				server.FailureCount = 0
 				server.LastSeen = time.Now()
@@ -146,9 +149,11 @@ func GoBackgrounds() {
 					server.BandwidthLimit.Update(resp.BandwidthLimit)
 					server.BandwidthLimit.Reset()
 					toSync = true
+					onlySyncItSelf = false
 				} else if !server.BandwidthLimit.Exhausted() {
 					if server.BandwidthLimit.Update(resp.BandwidthLimit); server.BandwidthLimit.Exhausted() {
 						toSync = true
+						onlySyncItSelf = false
 						_ = service.AddFeedServer(wtx, server, service.ServerActionBandwidthExhausted)
 					}
 				} else {
@@ -158,7 +163,7 @@ func GoBackgrounds() {
 					// asynchronously invoke sync to make sure it will happen after updating
 					time.AfterFunc(1*time.Second, func() {
 						// do not pass in tx here due to async
-						if e := service.ReqSyncPassagesByServer(nil, server.Ticket); e != nil {
+						if e := service.ReqSyncPassagesByServer(nil, server.Ticket, onlySyncItSelf); e != nil {
 							log.Warn("ReqSyncPassagesByServer: %v", e)
 						}
 					})

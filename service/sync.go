@@ -200,7 +200,7 @@ func init() {
 	go DefaultServerSyncBox.SyncBackground()
 }
 
-func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string) (err error) {
+func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string, onlyItSelf bool) (err error) {
 	ticketsToSync := []string{serverTicket}
 	tic, err := GetValidTicketObj(tx, serverTicket)
 	if err != nil {
@@ -210,17 +210,19 @@ func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string) (err error) {
 	if err != nil {
 		return err
 	}
-	for _, svr := range servers {
-		t, err := GetValidTicketObj(tx, svr.Ticket)
-		if err != nil {
-			continue
-		}
-		if tic.Type == model.TicketTypeServer && t.Type == model.TicketTypeRelay ||
-			tic.Type == model.TicketTypeRelay && t.Type == model.TicketTypeServer {
-			if svr.SyncNextSeen {
+	if !onlyItSelf{
+		for _, svr := range servers {
+			t, err := GetValidTicketObj(tx, svr.Ticket)
+			if err != nil {
 				continue
 			}
-			ticketsToSync = append(ticketsToSync, t.Ticket)
+			if tic.Type == model.TicketTypeServer && t.Type == model.TicketTypeRelay ||
+				tic.Type == model.TicketTypeRelay && t.Type == model.TicketTypeServer {
+				if svr.SyncNextSeen {
+					continue
+				}
+				ticketsToSync = append(ticketsToSync, t.Ticket)
+			}
 		}
 	}
 	for _, tic := range ticketsToSync {

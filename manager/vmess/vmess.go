@@ -54,6 +54,9 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 }
 
 func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []byte) (resp []byte, err error) {
+	if len(body) >= 1<<17 {
+		log.Trace("GetTurn(vmess): to: %v, len(body): %v", net.JoinHostPort(s.arg.Host, s.arg.Port), len(body))
+	}
 	dialer := s.dialer
 	if dialer == nil {
 		dialer = &net.Dialer{}
@@ -111,7 +114,6 @@ func (s *VMess) SyncPassages(ctx context.Context, passages []model.Passage) (err
 	if err != nil {
 		return err
 	}
-	log.Trace("SyncPassages: to: %v, len(body): %v", s.arg.Host, len(body))
 	resp, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
 	if err != nil {
 		return err

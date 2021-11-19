@@ -95,7 +95,7 @@ func PostRegister(c *gin.Context) {
 		if err = service.RegisterServer(nil, req); err != nil {
 			return
 		}
-		if err = service.ReqSyncPassagesByServer(nil, req.Ticket); err != nil {
+		if err = service.ReqSyncPassagesByServer(nil, req.Ticket, false); err != nil {
 			return
 		}
 	}(req, ticObj.ChatIdentifier)
