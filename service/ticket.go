@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var ErrInvalidTicket = fmt.Errorf("invalid ticket")
+
 // SaveTicket saves the given ticket to the database and sets the expiration time to the next month
 func SaveTicket(wtx *bolt.Tx, ticket string, typ model.TicketType, chatIdentifier string) (tic model.Ticket, err error) {
 	tic = model.Ticket{
@@ -55,7 +57,7 @@ func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error)
 		}
 		b := bkt.Get([]byte(ticket))
 		if b == nil {
-			return fmt.Errorf("invalid ticket")
+			return ErrInvalidTicket
 		}
 		var t model.Ticket
 		if err := jsoniter.Unmarshal(b, &t); err != nil {
@@ -63,7 +65,7 @@ func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error)
 		}
 		// zero means never expire
 		if common.Expired(t.ExpireAt) {
-			return fmt.Errorf("invalid ticket: expired")
+			return fmt.Errorf("%w: expired", ErrInvalidTicket)
 		}
 		tic = t
 		return nil
@@ -104,4 +106,34 @@ func GetValidTickets(tx *bolt.Tx) (tickets []model.Ticket) {
 	}
 	_ = db.DB().View(f)
 	return tickets
+}
+
+func RevokeTicket(wtx *bolt.Tx, ticket string, chatIdentifier string) (err error) {
+	f := func(tx *bolt.Tx) error {
+		ticObj, err := GetValidTicketObj(tx, ticket)
+		if err != nil {
+			return err
+		}
+		if ticObj.ChatIdentifier != chatIdentifier {
+			return ErrInvalidTicket
+		}
+		// server ticket never expire
+		switch ticObj.Type {
+		case model.TicketTypeServer, model.TicketTypeRelay:
+			svrBkt := tx.Bucket([]byte(model.BucketServer))
+			if svrBkt != nil {
+				_ = svrBkt.Delete([]byte(ticket))
+			}
+		default:
+		}
+		ticBkt, err := tx.CreateBucketIfNotExists([]byte(model.BucketTicket))
+		if err != nil {
+			return err
+		}
+		return ticBkt.Delete([]byte(ticket))
+	}
+	if wtx != nil {
+		return f(wtx)
+	}
+	return db.DB().Update(f)
 }

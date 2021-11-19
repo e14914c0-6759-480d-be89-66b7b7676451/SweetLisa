@@ -8,21 +8,21 @@ import (
 )
 
 func init() {
-	bot.RegisterCommands("verify", Verify)
+	bot.RegisterCommands("revoke", Revoke)
 }
 
-func Verify(b *bot.Bot, m *tb.Message, params []string) {
+func Revoke(b *bot.Bot, m *tb.Message, params []string) {
 	chatIdentifier := b.ChatIdentifier(m.Chat)
 	if len(params) < 1 {
-		b.Bot.Reply(m, "Invalid verify params. Format:\n/verify <verification code>", tb.Silent, tb.NoPreview)
+		b.Bot.Reply(m, "Invalid revoke params. Format:\n/revoke <your_ticket>", tb.Silent, tb.NoPreview)
 		return
 	}
 
-	log.Info("Verify: chatIdentifier: %v, text: %v", chatIdentifier, params[0])
+	log.Info("Revoke: chatIdentifier: %v, text: %v", chatIdentifier, params[0])
 	// m.Text should be a random string for verification
-	if err := service.Verify(nil, params[0], chatIdentifier); err != nil {
+	if err := service.RevokeTicket(nil, params[0], chatIdentifier); err != nil {
 		b.Bot.Reply(m, err.Error(), tb.Silent, tb.NoPreview)
 	} else {
-		b.Bot.Reply(m, "Passed. This code is valid within 2 minutes.", tb.Silent, tb.NoPreview)
+		b.Bot.Reply(m, "Revoked.", tb.Silent, tb.NoPreview)
 	}
 }

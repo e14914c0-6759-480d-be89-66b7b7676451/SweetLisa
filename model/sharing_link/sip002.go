@@ -13,8 +13,8 @@ type SIP002 struct {
 	Server   string `json:"server"`
 	Port     int    `json:"port"`
 	Password string `json:"password"`
-	Cipher string `json:"cipher"`
-	Plugin SIP003 `json:"plugin"`
+	Cipher   string `json:"cipher"`
+	Plugin   SIP003 `json:"plugin"`
 }
 
 func (s *SIP002) ExportToURL() string {
