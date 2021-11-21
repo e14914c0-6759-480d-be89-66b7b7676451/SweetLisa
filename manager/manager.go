@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
+	"io"
 	"strconv"
 )
 
@@ -14,8 +15,13 @@ type ManageArgument struct {
 }
 
 type Manager interface {
-	Ping(ctx context.Context) (resp []byte, err error)
+	Ping(ctx context.Context) (resp *model.PingResp, err error)
 	SyncPassages(ctx context.Context, passages []model.Passage) (err error)
+}
+
+type ReaderCloser struct {
+	Reader io.Reader
+	Closer io.Closer
 }
 
 type Creator func(conn Dialer, arg ManageArgument) (Manager, error)

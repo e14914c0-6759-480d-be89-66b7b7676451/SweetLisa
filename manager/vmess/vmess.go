@@ -53,7 +53,7 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 	}, nil
 }
 
-func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []byte) (resp []byte, err error) {
+func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []byte) (respBody *manager.ReaderCloser, err error) {
 	if len(body) >= 1<<17 {
 		log.Trace("GetTurn(vmess): to: %v, len(body): %v", net.JoinHostPort(s.arg.Host, s.arg.Port), len(body))
 	}
@@ -65,8 +65,7 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-	conn, err = vmess.NewConn(conn, vmess.Metadata{
+	vConn, err := vmess.NewConn(conn, vmess.Metadata{
 		Metadata: protocol.Metadata{
 			Network:  "tcp",
 			Type:     protocol.MetadataTypeMsg,
@@ -76,37 +75,40 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		},
 	}, s.cmdKey)
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
-	defer conn.Close()
 	go func() {
 		<-ctx.Done()
-		conn.SetDeadline(time.Now())
+		vConn.SetDeadline(time.Now())
 	}()
 	req := make([]byte, len(body)+4)
 	binary.BigEndian.PutUint32(req, uint32(len(body)))
 	copy(req[4:], body)
-	if _, err = conn.Write(req); err != nil {
+	if _, err = vConn.Write(req); err != nil {
+		vConn.Close()
 		return nil, err
 	}
 
 	// reuse the req variable to read length
-	if _, err = io.ReadFull(conn, req[:4]); err != nil {
+	if _, err = io.ReadFull(vConn, req[:4]); err != nil {
+		vConn.Close()
 		return nil, err
 	}
-	resp = make([]byte, binary.BigEndian.Uint32(req[:4]))
-	if _, err = io.ReadFull(conn, resp[:]); err != nil {
-		return nil, err
-	}
-	return resp, nil
+	return &manager.ReaderCloser{Reader: io.LimitReader(vConn, int64(binary.BigEndian.Uint32(req[:4]))), Closer: vConn}, nil
 }
 
-func (s *VMess) Ping(ctx context.Context) (resp []byte, err error) {
-	resp, err = s.GetTurn(ctx, protocol.MetadataCmdPing, []byte("ping"))
+func (s *VMess) Ping(ctx context.Context) (resp *model.PingResp, err error) {
+	respBody, err := s.GetTurn(ctx, protocol.MetadataCmdPing, []byte("ping"))
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+	defer respBody.Closer.Close()
+	var r model.PingResp
+	if err = jsoniter.NewDecoder(respBody.Reader).Decode(&r); err != nil {
+		return nil, err
+	}
+	return &r, nil
 }
 
 func (s *VMess) SyncPassages(ctx context.Context, passages []model.Passage) (err error) {
@@ -114,12 +116,17 @@ func (s *VMess) SyncPassages(ctx context.Context, passages []model.Passage) (err
 	if err != nil {
 		return err
 	}
-	resp, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
+	respBody, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(resp, []byte("OK")) {
-		return fmt.Errorf("unexpected SyncPassages response from server: %v", string(resp))
+	defer respBody.Closer.Close()
+	var buf = make([]byte, 2)
+	if _, err = io.ReadFull(respBody.Reader, buf); err != nil {
+		return err
+	}
+	if !bytes.Equal(buf, []byte("OK")) {
+		return fmt.Errorf("unexpected SyncPassages response from server: %v", string(buf))
 	}
 	return nil
 }
