@@ -31,7 +31,7 @@ func GoBackgrounds() {
 
 	// remove expired user tickets.
 	// remove server/relay tickets that have not been seen for a long time
-	go ExpireCleanBackground(model.BucketVerification, 1*time.Hour, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
+	go ExpireCleanBackground(model.BucketTicket, 1*time.Hour, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
 		var ticObj model.Ticket
 		err := jsoniter.Unmarshal(b, &ticObj)
 		if err != nil {
