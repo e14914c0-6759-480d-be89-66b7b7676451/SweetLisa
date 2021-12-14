@@ -1,5 +1,7 @@
 package sharing_link
 
+import jsoniter "github.com/json-iterator/go"
+
 type SIP008 struct {
 	Version        int            `json:"version"`
 	Servers        []SIP008Server `json:"servers"`
@@ -16,4 +18,9 @@ type SIP008Server struct {
 	Method     string `json:"method"`
 	Plugin     string `json:"plugin"`
 	PluginOpts string `json:"plugin_opts"`
+}
+
+func (s SIP008) ExportToString() string {
+	b, _ := jsoniter.Marshal(s)
+	return string(b)
 }

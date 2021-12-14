@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model/sharing_link"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
@@ -71,19 +70,19 @@ func GetSubscription(c *gin.Context) {
 	// verify the ticket
 	ticObj, err := service.GetValidTicketObj(nil, ticket)
 	if err != nil {
-		common.ResponseError(c, err)
+		ResponseError(c, err)
 		return
 	}
 	switch ticObj.Type {
 	case model.TicketTypeUser, model.TicketTypeRelay:
 	default:
-		common.ResponseBadRequestError(c)
+		ResponseError(c, fmt.Errorf("bad request"))
 		return
 	}
 	// get servers
 	servers, err := service.GetServersByChatIdentifier(nil, ticObj.ChatIdentifier, true)
 	if err != nil {
-		common.ResponseError(c, err)
+		ResponseError(c, err)
 		return
 	}
 	sort.Slice(servers, func(i, j int) bool {
@@ -301,4 +300,19 @@ func ServerNetType(server string) (typ uint8) {
 		typ = 2
 	}
 	return typ
+}
+
+func ResponseError(c *gin.Context, err error) {
+	c.String(http.StatusOK, "text/plain; charset=utf-8", sharing_link.SIP008{
+		Version: 1,
+		Servers: []sharing_link.SIP008Server{{
+			Remarks:    fmt.Sprintf("ERROR: %v", err),
+			Server:     "127.0.0.1",
+			ServerPort: 1024,
+			Password:   PasswordReserve,
+			Method:     "chacha20-ietf-poly1305",
+			Plugin:     "",
+			PluginOpts: "",
+		}},
+	}.ExportToString())
 }
