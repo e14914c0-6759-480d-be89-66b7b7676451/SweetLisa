@@ -303,7 +303,7 @@ func ServerNetType(server string) (typ uint8) {
 }
 
 func ResponseError(c *gin.Context, err error) {
-	c.String(http.StatusOK, "text/plain; charset=utf-8", sharing_link.SIP008{
+	c.JSON(http.StatusOK, sharing_link.SIP008{
 		Version: 1,
 		Servers: []sharing_link.SIP008Server{{
 			Remarks:    fmt.Sprintf("ERROR: %v", err),
@@ -314,5 +314,5 @@ func ResponseError(c *gin.Context, err error) {
 			Plugin:     "",
 			PluginOpts: "",
 		}},
-	}.ExportToString())
+	})
 }
