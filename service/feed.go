@@ -70,13 +70,12 @@ func GetChatFeed(tx *bolt.Tx, chatIdentifier string, format FeedFormat, fromTele
 	sort.SliceStable(feedItems, func(i, j int) bool {
 		return feedItems[i].Created.After(feedItems[j].Created)
 	})
+	title := "Republic of Developers Airline (aka RDA)"
 	if fromTelegram {
-		for i := range feedItems {
-			feedItems[i].Title = "#sheet " + feedItems[i].Title
-		}
+		title += " #sheet"
 	}
 	feed := feeds.Feed{
-		Title:       "Republic of Developers Airline (aka RDA)",
+		Title:       title,
 		Link:        &feeds.Link{Href: chatLink.String()},
 		Description: chatIdentifier,
 		Author:      &feeds.Author{Name: "Sweet Lisa", Email: "@SweetLisa_bot"},
@@ -157,7 +156,7 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 	var title string
 	switch action {
 	case ServerActionReconnect:
-		title = fmt.Sprintf("%v (%v): %v [offline for %v]", action, typ, server.Name, time.Since(server.LastSeen).String())
+		title = fmt.Sprintf("%v (%v): %v [offline for %v]", action, typ, server.Name, time.Since(server.LastSeen).Truncate(time.Second).String())
 	default:
 		title = fmt.Sprintf("%v (%v): %v [%v]", action, typ, server.Name, server.Hosts)
 	}

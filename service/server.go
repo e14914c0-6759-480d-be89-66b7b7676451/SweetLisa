@@ -100,7 +100,8 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 			}
 		}
 		if old.FailureCount >= model.MaxFailureCount {
-			log.Info("server %v reconnected", server.Name)
+			server.LastSeen = old.LastSeen
+			log.Info("server %v reconnected. lastSeen: %v", server.Name, server.LastSeen.String())
 			_ = AddFeedServer(tx, server, ServerActionReconnect)
 		}
 		old.BandwidthLimit.Update(server.BandwidthLimit)

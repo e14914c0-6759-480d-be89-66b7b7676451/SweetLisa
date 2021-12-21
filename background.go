@@ -135,7 +135,7 @@ func GoBackgrounds() {
 					// onlySyncItSelf = true
 				}
 				if server.FailureCount >= model.MaxFailureCount {
-					log.Info("server %v reconnected", server.Name)
+					log.Info("server %v reconnected. lastSeen: %v", server.Name, server.LastSeen.String())
 					_ = service.AddFeedServer(wtx, server, service.ServerActionReconnect)
 					toSync = true
 					onlySyncItSelf = false
