@@ -154,8 +154,15 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 		Host:   config.GetConfig().Host,
 		Path:   path.Join("chat", tic.ChatIdentifier),
 	}
+	var title string
+	switch action {
+	case ServerActionReconnect:
+		title = fmt.Sprintf("%v (%v): %v [offline for %v]", action, typ, server.Name, time.Since(server.LastSeen).String())
+	default:
+		title = fmt.Sprintf("%v (%v): %v [%v]", action, typ, server.Name, server.Hosts)
+	}
 	return AddFeed(wtx, tic.ChatIdentifier, feeds.Item{
-		Title: fmt.Sprintf("%v (%v): %v", action, typ, server.Name),
+		Title: title,
 		Link: &feeds.Link{
 			Href: u.String(),
 		},
