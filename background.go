@@ -43,11 +43,11 @@ func GoBackgrounds() {
 			// really delete
 			return true, []string{ticObj.ChatIdentifier}
 		}
+		// we only sync at the first 3 hours because the sync costs a lot
+		if common.Expired(ticObj.ExpireAt.Add(3 * time.Hour)) {
+			return false, nil
+		}
 		if common.Expired(ticObj.ExpireAt) {
-			// we only sync at the first 3 hours because sync costs a lot
-			if common.Expired(ticObj.ExpireAt.Add(3 * time.Hour)) {
-				return false, nil
-			}
 			// just sync for disabling
 			return false, []string{ticObj.ChatIdentifier}
 		}
