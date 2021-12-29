@@ -48,8 +48,7 @@ func SaveTicket(wtx *bolt.Tx, ticket string, typ model.TicketType, chatIdentifie
 	return tic, db.DB().Update(f)
 }
 
-// GetValidTicketObj returns ticket object if given ticket is valid
-func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error) {
+func GetTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error) {
 	f := func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte(model.BucketTicket))
 		if bkt == nil {
@@ -63,10 +62,6 @@ func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error)
 		if err := jsoniter.Unmarshal(b, &t); err != nil {
 			return err
 		}
-		// zero means never expire
-		if common.Expired(t.ExpireAt) {
-			return fmt.Errorf("%w: expired", ErrInvalidTicket)
-		}
 		tic = t
 		return nil
 	}
@@ -77,6 +72,29 @@ func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error)
 		return tic, nil
 	}
 	if err = db.DB().View(f); err != nil {
+		return model.Ticket{}, err
+	}
+	return tic, nil
+}
+
+// GetValidTicketObj returns ticket object if given ticket is valid
+func GetValidTicketObj(tx *bolt.Tx, ticket string) (tic model.Ticket, err error) {
+	defer func() {
+		// zero means never expire
+		if err == nil && common.Expired(tic.ExpireAt) {
+			err = fmt.Errorf("%w: expired", ErrInvalidTicket)
+		}
+	}()
+	if tx != nil {
+		if tic, err = GetTicketObj(tx, ticket); err != nil {
+			return model.Ticket{}, err
+		}
+		return tic, nil
+	}
+	if err = db.DB().View(func(tx *bolt.Tx) error {
+		tic, err = GetTicketObj(tx, ticket)
+		return err
+	}); err != nil {
 		return model.Ticket{}, err
 	}
 	return tic, nil

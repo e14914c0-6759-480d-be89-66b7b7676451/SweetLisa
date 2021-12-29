@@ -31,15 +31,21 @@ func GoBackgrounds() {
 
 	// remove expired user tickets.
 	// remove server/relay tickets that have not been seen for a long time
-	go ExpireCleanBackground(model.BucketTicket, 1*time.Hour, func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string) {
+	go ExpireCleanBackground(model.BucketTicket, 1*time.Hour, func(tx *bolt.Tx, b []byte, now time.Time) (clean bool, chatToSync []string) {
 		var ticObj model.Ticket
 		err := jsoniter.Unmarshal(b, &ticObj)
 		if err != nil {
 			log.Warn("clean ticket: %v", err)
 			return false, nil
 		}
-		if common.Expired(ticObj.ExpireAt) {
+		// there is still 24 hours for renewal
+		if common.Expired(ticObj.ExpireAt.Add(24 * time.Hour)) {
+			// really delete
 			return true, []string{ticObj.ChatIdentifier}
+		}
+		if common.Expired(ticObj.ExpireAt) {
+			// just sync for disabling
+			return false, []string{ticObj.ChatIdentifier}
 		}
 		switch ticObj.Type {
 		case model.TicketTypeRelay, model.TicketTypeServer:
@@ -256,7 +262,7 @@ func SyncAll() {
 	wg.Wait()
 }
 
-func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx *bolt.Tx, b []byte, now time.Time) (expired bool, chatToSync []string)) func() {
+func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx *bolt.Tx, b []byte, now time.Time) (clean bool, chatToSync []string)) func() {
 	return func() {
 		tick := time.Tick(cleanInterval)
 		for now := range tick {
@@ -268,8 +274,8 @@ func ExpireCleanBackground(bucket string, cleanInterval time.Duration, f func(tx
 				var listClean [][]byte
 				var chatToSync []string
 				if err = bkt.ForEach(func(k, b []byte) error {
-					expired, chat := f(tx, b, now)
-					if expired {
+					clean, chat := f(tx, b, now)
+					if clean {
 						listClean = append(listClean, k)
 					}
 					chatToSync = append(chatToSync, chat...)

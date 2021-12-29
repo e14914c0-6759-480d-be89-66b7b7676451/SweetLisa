@@ -58,7 +58,7 @@ func PostRenew(c *gin.Context) {
 		return
 	}
 	ticket := c.Param("Ticket")
-	ticObj, err := service.GetValidTicketObj(nil, ticket)
+	ticObj, err := service.GetTicketObj(nil, ticket)
 	if err != nil {
 		common.ResponseError(c, err)
 		return
