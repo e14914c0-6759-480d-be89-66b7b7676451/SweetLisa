@@ -24,7 +24,7 @@ const PasswordReserve = "__SWEETLISA__"
 
 var cachedResolver = dnscache.Resolver{}
 
-func NameToShow(server *model.Server, showQuota bool) string {
+func NameToShow(server *model.Server, showQuota bool, noQuota bool) string {
 	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
 		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
@@ -52,7 +52,7 @@ func NameToShow(server *model.Server, showQuota bool) string {
 	}
 	fRemainingGiB := float64(remaining[0]) / 1024 / 1024
 	// do not show if there is adequate bandwidth
-	if fRemainingGiB > 500 && !showQuota {
+	if noQuota || (fRemainingGiB > 500 && !showQuota) {
 		return server.Name
 	}
 	fields := regexp.MustCompile(`^\[(.+)]\s*(.+)$`).FindStringSubmatch(server.Name)
@@ -93,6 +93,7 @@ func GetSubscription(c *gin.Context) {
 	flags := strings.Split(c.Param("flags"), ",")
 	var v4v6Mask uint8
 	var showQuota bool
+	var noQuota bool
 	for _, flag := range flags {
 		switch flag {
 		case "4":
@@ -101,6 +102,8 @@ func GetSubscription(c *gin.Context) {
 			v4v6Mask |= 1 << 1
 		case "quota":
 			showQuota = true
+		case "noquota":
+			noQuota = true
 		}
 	}
 	if v4v6Mask == 0 {
@@ -176,7 +179,7 @@ func GetSubscription(c *gin.Context) {
 				case model.ProtocolShadowsocks:
 					//log.Trace("shadowsocks")
 					s := sharing_link.SIP002{
-						Name:     NameToShow(svr, showQuota),
+						Name:     NameToShow(svr, showQuota, noQuota),
 						Server:   host,
 						Port:     svr.Port,
 						Password: arg.Password,
@@ -189,7 +192,7 @@ func GetSubscription(c *gin.Context) {
 				case model.ProtocolVMessTCP:
 					//log.Trace("vmess")
 					s := sharing_link.V2RayN{
-						Ps:   NameToShow(svr, showQuota),
+						Ps:   NameToShow(svr, showQuota, noQuota),
 						Add:  host,
 						Port: strconv.Itoa(svr.Port),
 						ID:   arg.Password,
@@ -226,7 +229,7 @@ func GetSubscription(c *gin.Context) {
 					switch arg.Protocol {
 					case model.ProtocolShadowsocks:
 						s := sharing_link.SIP002{
-							Name:     fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
+							Name:     fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
 							Server:   host,
 							Port:     relay.Port,
 							Password: arg.Password,
@@ -238,7 +241,7 @@ func GetSubscription(c *gin.Context) {
 						mutex.Unlock()
 					case model.ProtocolVMessTCP:
 						s := sharing_link.V2RayN{
-							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota), NameToShow(svr, showQuota)),
+							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
 							Add:  host,
 							Port: strconv.Itoa(relay.Port),
 							ID:   arg.Password,
