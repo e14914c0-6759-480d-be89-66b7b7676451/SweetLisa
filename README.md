@@ -14,6 +14,10 @@ https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/4
 
 # filter out ipv6, and force to show the quotas
 https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/6,quota
+
+# force to disable the quotas
+https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/noquota
+
 ```
 
 **Telegram Commands**
