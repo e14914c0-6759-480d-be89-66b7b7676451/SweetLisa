@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
@@ -20,6 +22,8 @@ import (
 )
 
 const ServerSyncBoxCleanTimeout = 6 * time.Hour
+
+var CNProxyNotSetErr = fmt.Errorf("cnproxy is not set")
 
 type ServerSyncBox struct {
 	waitingSync chan struct{}
@@ -210,7 +214,7 @@ func ReqSyncPassagesByServer(tx *bolt.Tx, serverTicket string, onlyItSelf bool) 
 	if err != nil {
 		return err
 	}
-	if !onlyItSelf{
+	if !onlyItSelf {
 		for _, svr := range servers {
 			t, err := GetValidTicketObj(tx, svr.Ticket)
 			if err != nil {
@@ -248,28 +252,39 @@ func ReqSyncPassagesByChatIdentifier(tx *bolt.Tx, chatIdentifier string, include
 
 // ChooseDialer choose CNProxy dialer for servers in China, and net.Dialer for others
 func ChooseDialer(server model.Server) manager.Dialer {
-	if cnProxy := config.GetConfig().CNProxy; cnProxy != "" {
-		p, err := url.Parse(cnProxy)
+	cnDialer, err := GetCNProxyDialer()
+	if err != nil {
+		if !errors.Is(err, CNProxyNotSetErr) {
+			log.Warn("ChooseDialer: %v", err)
+		}
+		return &net.Dialer{}
+	}
+	ip := model.GetFirstHost(server.Hosts)
+	if net.ParseIP(ip) == nil {
+		ips, err := net.LookupHost(ip)
 		if err != nil {
-			log.Warn("bad CNProxy: %v", err)
 			return &net.Dialer{}
 		}
-		ip := model.GetFirstHost(server.Hosts)
-		if net.ParseIP(ip) == nil {
-			ips, err := net.LookupHost(ip)
-			if err != nil {
-				return &net.Dialer{}
-			}
-			ip = ips[0]
-		}
-		if ipip.IsChinaIPLookupTable(ip) {
-			dialer, err := proxy.FromURL(p, proxy.Direct)
-			if err != nil {
-				log.Warn("failed to parse CNProxy: %v", err)
-				return &net.Dialer{}
-			}
-			return &manager.DialerConverter{Dialer: dialer}
-		}
+		ip = ips[0]
 	}
-	return &net.Dialer{}
+	if !ipip.IsChinaIPLookupTable(ip) {
+		return &net.Dialer{}
+	}
+	return &manager.DialerConverter{Dialer: cnDialer}
+}
+
+func GetCNProxyDialer() (proxy.Dialer, error) {
+	cnProxy := config.GetConfig().CNProxy
+	if cnProxy == "" {
+		return nil, CNProxyNotSetErr
+	}
+	p, err := url.Parse(cnProxy)
+	if err != nil {
+		return nil, fmt.Errorf("bad CNProxy: %v", err)
+	}
+	dialer, err := proxy.FromURL(p, proxy.Direct)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CNProxy: %v", err)
+	}
+	return dialer, nil
 }
