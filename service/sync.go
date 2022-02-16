@@ -256,6 +256,8 @@ func ChooseDialer(server model.Server) manager.Dialer {
 	if err != nil {
 		if !errors.Is(err, CNProxyNotSetErr) {
 			log.Warn("ChooseDialer: %v", err)
+		} else {
+			log.Trace("ChooseDialer: %v", err)
 		}
 		return &net.Dialer{}
 	}
@@ -263,6 +265,7 @@ func ChooseDialer(server model.Server) manager.Dialer {
 	if net.ParseIP(ip) == nil {
 		ips, err := net.LookupHost(ip)
 		if err != nil {
+			log.Debug("ChooseDialer: %v", err)
 			return &net.Dialer{}
 		}
 		ip = ips[0]
@@ -270,6 +273,7 @@ func ChooseDialer(server model.Server) manager.Dialer {
 	if !ipip.IsChinaIPLookupTable(ip) {
 		return &net.Dialer{}
 	}
+	log.Trace("ChooseDialer: use CN-proxy for %v", ip)
 	return &manager.DialerConverter{Dialer: cnDialer}
 }
 
