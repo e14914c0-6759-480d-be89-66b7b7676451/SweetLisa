@@ -98,7 +98,19 @@ func (l *BandwidthLimit) Update(r BandwidthLimit) {
 		l.ResetMonth = -1
 		l.UplinkInitialKiB = r.UplinkKiB
 		l.DownlinkInitialKiB = r.DownlinkKiB
+	} else {
+		// Check the abnormally decreased traffic.
+		// Re-calculate the limit.
+		if r.DownlinkKiB < l.DownlinkKiB {
+			usage := l.DownlinkKiB - l.DownlinkInitialKiB
+			l.DownlinkInitialKiB = r.DownlinkKiB - usage
+		}
+		if r.UplinkKiB < l.UplinkKiB {
+			usage := l.UplinkKiB - l.UplinkInitialKiB
+			l.UplinkInitialKiB = r.UplinkKiB - usage
+		}
 	}
+
 	l.DownlinkLimitGiB = r.DownlinkLimitGiB
 	l.UplinkLimitGiB = r.UplinkLimitGiB
 	l.TotalLimitGiB = r.TotalLimitGiB
