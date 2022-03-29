@@ -23,7 +23,7 @@ func SaveTicket(wtx *bolt.Tx, ticket string, typ model.TicketType, chatIdentifie
 	// server ticket never expire
 	switch typ {
 	case model.TicketTypeUser:
-		tic.ExpireAt = time.Now().AddDate(0, 1, 0)
+		tic.ExpireAt = time.Now().AddDate(0, 1, 1)
 	case model.TicketTypeServer, model.TicketTypeRelay:
 		tic.ExpireAt = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 	default:
