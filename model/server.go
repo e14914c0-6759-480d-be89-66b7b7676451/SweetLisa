@@ -231,3 +231,7 @@ func (a Argument) InfoHash() string {
 	}
 	return common.Base95Encoder.Encode(h.Sum(nil))
 }
+
+func (a Argument) WithTLS() bool {
+	return common.StringsHas(strings.Split(string(a.Protocol), "+"), "tls")
+}

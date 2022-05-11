@@ -7,6 +7,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/nameserver"
 	"net/netip"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,6 +41,7 @@ func (c *Cloudflare) Assign(ctx context.Context, domain string, strIP string) er
 	if len(fields) < 2 {
 		return fmt.Errorf("invalid domain: %v", domain)
 	}
+	zoneName := strings.Join(fields[len(fields)-2:], ".")
 	ip, err := netip.ParseAddr(strIP)
 	if err != nil {
 		return err
@@ -50,7 +52,6 @@ func (c *Cloudflare) Assign(ctx context.Context, domain string, strIP string) er
 	} else {
 		typ = "A"
 	}
-	zoneName := strings.Join(fields[len(fields)-2:], ".")
 	zoneID, err := c.api.ZoneIDByName(zoneName)
 	if err != nil {
 		return err
@@ -77,4 +78,32 @@ func (c *Cloudflare) Assign(ctx context.Context, domain string, strIP string) er
 		_, err = c.api.CreateDNSRecord(ctx, zoneID, newRecord)
 		return err
 	}
+}
+
+func (c *Cloudflare) RemoveRecords(ctx context.Context, domain string) error {
+	fields := strings.Split(domain, ".")
+	if len(fields) < 2 {
+		return fmt.Errorf("invalid domain: %v", domain)
+	}
+	zoneName := strings.Join(fields[len(fields)-2:], ".")
+	zoneID, err := c.api.ZoneIDByName(zoneName)
+	if err != nil {
+		return err
+	}
+	records, err := c.api.DNSRecords(ctx, zoneID, cloudflare.DNSRecord{Name: domain})
+	if err != nil {
+		return err
+	}
+	var wg sync.WaitGroup
+	for _, record := range records {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			e := c.api.DeleteDNSRecord(ctx, zoneID, id)
+			if e != nil {
+				err = e
+			}
+		}(record.ID)
+	}
+	return err
 }

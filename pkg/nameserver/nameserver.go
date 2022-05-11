@@ -7,6 +7,7 @@ import (
 
 type Nameserver interface {
 	Assign(ctx context.Context, domain string, ip string) error
+	RemoveRecords(ctx context.Context, domain string) error
 }
 
 type Creator func(token string) (Nameserver, error)

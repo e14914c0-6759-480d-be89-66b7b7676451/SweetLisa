@@ -122,9 +122,28 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 			defer func() {
 				if err == nil {
 					if old.Argument.InfoHash() != server.Argument.InfoHash() {
+						// server info changed
 						log.Info("server %v info changed. from %v to %v", old.Argument, server.Argument)
 						if err = AddFeedServer(tx, server, ServerActionServerInfoChanged); err != nil {
 							log.Error("AddFeedServer:", err)
+						}
+						// remove old records
+						if old.Argument.WithTLS() || model.GetFirstHost(old.Hosts) != model.GetFirstHost(server.Hosts) {
+							if conf := config.GetConfig(); conf.NameserverName != "" && conf.NameserverToken != "" {
+								ns, e := nameserver.NewNameserver(conf.NameserverName, conf.NameserverToken)
+								if e != nil {
+									log.Warn("RemoveRecords: %v", e)
+									return
+								}
+								domain, e := common.HostToSNI(model.GetFirstHost(old.Hosts), config.GetConfig().Host)
+								if e != nil {
+									log.Warn("RemoveRecords: %v", e)
+									return
+								}
+								if e = ns.RemoveRecords(context.Background(), domain); e != nil {
+									log.Warn("RemoveRecords: %v", e)
+								}
+							}
 						}
 					}
 				}
