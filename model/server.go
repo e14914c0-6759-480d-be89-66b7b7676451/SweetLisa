@@ -212,3 +212,17 @@ func (a Argument) Hash() string {
 	}
 	return common.Base95Encoder.Encode(h.Sum(nil))
 }
+
+func (a Argument) InfoHash() string {
+	h := sha1.New()
+	v := reflect.ValueOf(a)
+	for i := 0; i < v.NumField(); i++ {
+		// The Password is for SweetLisa and mutable.
+		if v.Type().Field(i).Name == "Password" {
+			continue
+		}
+		field := v.Field(i)
+		h.Write([]byte(fmt.Sprint(field.Interface())))
+	}
+	return common.Base95Encoder.Encode(h.Sum(nil))
+}

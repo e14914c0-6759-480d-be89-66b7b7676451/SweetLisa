@@ -91,18 +91,35 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 		// register a new server
 		var old model.Server
 		if bOld := bkt.Get([]byte(server.Ticket)); bOld == nil {
-			if err := AddFeedServer(tx, server, ServerActionLaunch); err != nil {
-				return err
-			}
+			defer func() {
+				if err == nil {
+					log.Info("server %v launched. server arguments: %v", server.Argument)
+					if err = AddFeedServer(tx, server, ServerActionLaunch); err != nil {
+						log.Error("AddFeedServer:", err)
+					}
+				}
+			}()
 		} else {
 			if err := jsoniter.Unmarshal(bOld, &old); err != nil {
 				return err
 			}
+			defer func() {
+				if err == nil {
+					log.Info("server %v info changed. from %v to %v", old.Argument, server.Argument)
+					if old.Argument.InfoHash() != server.Argument.InfoHash() {
+						if err = AddFeedServer(tx, server, ServerActionServerInfoChanged); err != nil {
+							log.Error("AddFeedServer:", err)
+						}
+					}
+				}
+			}()
 		}
 		if old.FailureCount >= model.MaxFailureCount {
 			server.LastSeen = old.LastSeen
 			log.Info("server %v reconnected. lastSeen: %v", server.Name, server.LastSeen.String())
-			_ = AddFeedServer(tx, server, ServerActionReconnect)
+			if err = AddFeedServer(tx, server, ServerActionReconnect); err != nil {
+				log.Error("AddFeedServer:", err)
+			}
 		}
 		old.BandwidthLimit.Update(server.BandwidthLimit)
 		server.BandwidthLimit = old.BandwidthLimit

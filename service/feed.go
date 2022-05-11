@@ -24,6 +24,7 @@ const (
 	ServerActionDisconnect                      = "💥 Disconnected"
 	ServerActionBandwidthExhausted              = "🈳 Bandwidth Exhausted"
 	ServerActionBandwidthReset                  = "🈵 Bandwidth Reset"
+	ServerActionServerInfoChanged               = "🎲 Server Info Changed"
 )
 
 type FeedFormat int
@@ -157,6 +158,8 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 	switch action {
 	case ServerActionReconnect:
 		title = fmt.Sprintf("%v (%v): %v [offline for %v]", action, typ, server.Name, time.Since(server.LastSeen).Truncate(time.Second).String())
+	case ServerActionServerInfoChanged:
+		title = fmt.Sprintf("%v (%v): %v; %v; %v; %v)", action, typ, server.Name, server.Hosts, server.Port, server.Argument.Protocol)
 	default:
 		title = fmt.Sprintf("%v (%v): %v [%v]", action, typ, server.Name, server.Hosts)
 	}
