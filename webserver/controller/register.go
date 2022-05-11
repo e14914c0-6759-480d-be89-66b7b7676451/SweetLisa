@@ -7,6 +7,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/resolver"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
 	"net"
@@ -89,12 +90,7 @@ func PostRegister(c *gin.Context) {
 			log.Info("Waiting for DNS record")
 			t := time.Now()
 			for {
-				resolver := net.Resolver{
-					PreferGo: true,
-				}
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				ips, _ := resolver.LookupIP(ctx, "ip4", domain)
-				cancel()
+				ips, _ := resolver.LookupHost(domain)
 				if len(ips) > 0 {
 					break
 				}

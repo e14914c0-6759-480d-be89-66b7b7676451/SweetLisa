@@ -159,7 +159,7 @@ func AddFeedServer(wtx *bolt.Tx, server model.Server, action ServerAction) (err 
 	case ServerActionReconnect:
 		title = fmt.Sprintf("%v (%v): %v [offline for %v]", action, typ, server.Name, time.Since(server.LastSeen).Truncate(time.Second).String())
 	case ServerActionServerInfoChanged:
-		title = fmt.Sprintf("%v (%v): %v; %v; %v; %v)", action, typ, server.Name, server.Hosts, server.Port, server.Argument.Protocol)
+		title = fmt.Sprintf("%v (%v): %v [%v; %v; %v]", action, typ, server.Name, server.Hosts, server.Port, server.Argument.Protocol)
 	default:
 		title = fmt.Sprintf("%v (%v): %v [%v]", action, typ, server.Name, server.Hosts)
 	}
