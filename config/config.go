@@ -18,6 +18,8 @@ type Params struct {
 	CNProxy             string `id:"cn-proxy" desc:"The https proxy for sweetlisa to connect to the servers and relays in China"`
 	BotToken            string `id:"bot-token"`
 	Host                string `id:"host" default:"example.org"`
+	NameserverName      string `id:"nameserver-name" desc:"nameserver name of given token"`
+	NameserverToken     string `id:"nameserver-token" desc:"nameserver token to set DNS for BitterJohn's TLS challenge"`
 	LogLevel            string `id:"log-level" default:"info" desc:"Optional values: trace, debug, info, warn or error"`
 	LogFile             string `id:"log-file" desc:"The path of log file"`
 	LogMaxDays          int64  `id:"log-max-days" default:"3" desc:"Maximum number of days to keep log files"`

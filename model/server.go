@@ -17,13 +17,14 @@ const (
 type Protocol string
 
 const (
-	ProtocolVMessTCP    Protocol = "vmess"
-	ProtocolShadowsocks Protocol = "shadowsocks"
+	ProtocolVMessTCP     Protocol = "vmess"
+	ProtocolVMessTlsGrpc Protocol = "vmess+tls+grpc"
+	ProtocolShadowsocks  Protocol = "shadowsocks"
 )
 
 func (p Protocol) Valid() bool {
 	switch p {
-	case ProtocolVMessTCP, ProtocolShadowsocks:
+	case ProtocolVMessTCP, ProtocolVMessTlsGrpc, ProtocolShadowsocks:
 		return true
 	default:
 		return false
@@ -144,7 +145,11 @@ func (l *BandwidthLimit) Reset() {
 }
 
 func GetFirstHost(host string) string {
-	return strings.SplitN(host, ",", 2)[0]
+	fields := strings.SplitN(host, ",", 2)
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
 }
 
 func GetUserArgument(serverTicket, userTicket string, protocol Protocol) Argument {
@@ -159,7 +164,7 @@ func GetUserArgument(serverTicket, userTicket string, protocol Protocol) Argumen
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
-	case ProtocolVMessTCP:
+	case ProtocolVMessTCP, ProtocolVMessTlsGrpc:
 		return Argument{
 			Protocol: protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
@@ -182,7 +187,7 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, protocol
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
-	case ProtocolVMessTCP:
+	case ProtocolVMessTCP, ProtocolVMessTlsGrpc:
 		return Argument{
 			Protocol: protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),

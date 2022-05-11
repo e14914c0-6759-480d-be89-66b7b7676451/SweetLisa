@@ -9,8 +9,9 @@ import (
 )
 
 type ManageArgument struct {
-	Host string
-	Port string
+	Host       string
+	Port       string
+	RootDomain string // this is for TLS SNI
 	model.Argument
 }
 

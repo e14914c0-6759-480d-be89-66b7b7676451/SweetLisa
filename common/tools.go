@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/eknkc/basex"
+	"net/netip"
 	"net/url"
 	"os/user"
 	"path/filepath"
@@ -138,6 +139,15 @@ func SliceSub(slice []string, toSub []string) []string {
 	return res
 }
 
+func StringsHas(strs []string, str string) bool {
+	for _, s := range strs {
+		if s == str{
+			return true
+		}
+	}
+	return false
+}
+
 func SliceHas(slice []string, set []string) []string {
 	var res = make([]string, 0, len(slice))
 	var m = make(map[string]struct{})
@@ -219,4 +229,17 @@ func StringToUUID5(str string) string {
 func IsCanceled(err error) bool {
 	return strings.Contains(err.Error(), "operation was canceled") ||
 		strings.Contains(err.Error(), "context canceled")
+}
+
+func HostToSNI(host string, rootDomain string) (sni string, err error) {
+	ip, e := netip.ParseAddr(host)
+	if e != nil {
+		sni = host
+	} else {
+		if ip.Is6() {
+			return "", fmt.Errorf("the first hostname is not ipv4 format")
+		}
+		sni = strings.ReplaceAll(host, ".", "-") + "." + rootDomain
+	}
+	return sni, nil
 }

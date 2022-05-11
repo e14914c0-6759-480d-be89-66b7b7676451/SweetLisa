@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model/sharing_link"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
@@ -204,6 +206,26 @@ func GetSubscription(c *gin.Context) {
 					mutex.Lock()
 					lines[cnt] = s.ExportToURL()
 					mutex.Unlock()
+				case model.ProtocolVMessTlsGrpc:
+					//log.Trace("vmess+tls+grpc")
+					sni, _ := common.HostToSNI(host, config.GetConfig().Host)
+					s := sharing_link.V2RayN{
+						Ps:   NameToShow(svr, showQuota, noQuota),
+						Add:  host,
+						Port: strconv.Itoa(svr.Port),
+						ID:   arg.Password,
+						Aid:  "0",
+						Net:  "grpc",
+						TLS:  "tls",
+						Type: "none",
+						Sni:  sni,
+						Host: sni,
+						Path: "GunService",
+						V:    "2",
+					}
+					mutex.Lock()
+					lines[cnt] = s.ExportToURL()
+					mutex.Unlock()
 				default:
 					log.Warn("unexpected protocol: %v", arg.Protocol)
 				}
@@ -248,6 +270,26 @@ func GetSubscription(c *gin.Context) {
 							Aid:  "0",
 							Net:  "tcp",
 							Type: "none",
+							V:    "2",
+						}
+						mutex.Lock()
+						lines[cnt] = s.ExportToURL()
+						mutex.Unlock()
+					case model.ProtocolVMessTlsGrpc:
+						//log.Trace("vmess+tls+grpc")
+						sni, _ := common.HostToSNI(host, config.GetConfig().Host)
+						s := sharing_link.V2RayN{
+							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
+							Add:  host,
+							Port: strconv.Itoa(relay.Port),
+							ID:   arg.Password,
+							Aid:  "0",
+							Net:  "grpc",
+							TLS:  "tls",
+							Type: "none",
+							Sni:  sni,
+							Host: sni,
+							Path: "GunService",
 							V:    "2",
 						}
 						mutex.Lock()

@@ -136,9 +136,10 @@ func (b *ServerSyncBox) SyncBackground() {
 					}
 					log.Trace("Sync: tic: %v: %v", ticket, svr.Name)
 					mng, err := manager.NewManager(ChooseDialer(svr), manager.ManageArgument{
-						Host:     model.GetFirstHost(svr.Hosts),
-						Port:     strconv.Itoa(svr.Port),
-						Argument: svr.Argument,
+						Host:       model.GetFirstHost(svr.Hosts),
+						Port:       strconv.Itoa(svr.Port),
+						RootDomain: config.GetConfig().Host,
+						Argument:   svr.Argument,
 					})
 					if err != nil {
 						log.Info("SyncBackground: %v: %v", svr.Name, err)

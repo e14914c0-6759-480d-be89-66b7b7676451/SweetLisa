@@ -10,6 +10,8 @@ import (
 type Dialer interface {
 	// DialContext connects to the given address
 	DialContext(ctx context.Context, network, addr string) (c net.Conn, err error)
+	// Dial connects to the given address
+	Dial(network, addr string) (c net.Conn, err error)
 }
 
 type DialerConverter struct {
@@ -36,4 +38,8 @@ func (d *DialerConverter) DialContext(ctx context.Context, network, addr string)
 	case <-done:
 		return c, err
 	}
+}
+
+func (d *DialerConverter) Dial(network, addr string) (c net.Conn, err error) {
+	return d.Dialer.Dial(network, addr)
 }

@@ -18,7 +18,7 @@ import (
 )
 
 func init() {
-	manager.Register("shadowsocks", New)
+	manager.Register(string(model.ProtocolShadowsocks), New)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
 	params := *config.GetConfig()
@@ -66,7 +66,6 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, bod
 	crw, err := ss.NewTCPConn(conn, protocol.Metadata{
 		Type:     protocol.MetadataTypeMsg,
 		Cmd:      cmd,
-		Network:  "tcp",
 		Cipher:   s.arg.Argument.Method,
 		IsClient: false,
 	}, s.masterKey, nil)

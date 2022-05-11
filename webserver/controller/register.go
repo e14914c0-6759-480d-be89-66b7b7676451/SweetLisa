@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
 	"net"
+	"net/netip"
 	"strings"
 	"time"
 )
@@ -56,6 +58,9 @@ func PostRegister(c *gin.Context) {
 		!req.Argument.Protocol.Valid() ||
 		req.Name == "" ||
 		hostsValidator(req.Hosts) != nil {
+		if !req.Argument.Protocol.Valid() {
+			log.Debug("Register: bad request: %v", req)
+		}
 		common.ResponseBadRequestError(c)
 		return
 	}
@@ -72,6 +77,34 @@ func PostRegister(c *gin.Context) {
 		return
 	}
 	go func(req model.Server, chatIdentifier string) {
+		conf := config.GetConfig()
+		if common.StringsHas(strings.Split(string(req.Argument.Protocol), "+"), "tls") {
+			// waiting for the record
+			domain, err := common.HostToSNI(model.GetFirstHost(req.Hosts), conf.Host)
+			if err != nil {
+				log.Error("%v", err)
+			}
+			log.Info("TLS SNI is %v", domain)
+
+			log.Info("Waiting for DNS record")
+			t := time.Now()
+			for {
+				resolver := net.Resolver{
+					PreferGo: true,
+				}
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				ips, _ := resolver.LookupIP(ctx, "ip4", domain)
+				cancel()
+				if len(ips) > 0 {
+					break
+				}
+				if time.Since(t) > time.Minute {
+					log.Error("timeout for waiting for DNS record")
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
+			log.Info("Found DNS record")
+		}
 		// waiting for the starting of BitterJohn
 		time.Sleep(5 * time.Second)
 		var err error
@@ -86,7 +119,7 @@ func PostRegister(c *gin.Context) {
 			}
 		}()
 		// ping test
-		log.Trace("ping %v use %v", req.Name, req.Argument)
+		log.Trace("ping %v use %v [%v; %v]", req.Name, req.Argument, req.Hosts, req.Port)
 		if _, err = service.Ping(ctx, req); err != nil {
 			err = fmt.Errorf("unreachable: %w", err)
 			return
@@ -99,6 +132,17 @@ func PostRegister(c *gin.Context) {
 			return
 		}
 	}(req, ticObj.ChatIdentifier)
+
+	// assign subdomain for tls
+	if conf := config.GetConfig(); conf.NameserverName != "" && conf.NameserverToken != "" &&
+		common.StringsHas(strings.Split(string(req.Argument.Protocol), "+"), "tls") {
+		host := model.GetFirstHost(req.Hosts)
+		if ip, e := netip.ParseAddr(host); e == nil {
+			if e = service.AssignSubDomain(ip); e != nil {
+				log.Warn("failed to assign subdomain: %v", e)
+			}
+		}
+	}
 	log.Info("Received a register request from %v: Chat: %v, Type: %v, Protocol: %v", req.Name, ticObj.ChatIdentifier, ticObj.Type, req.Argument.Protocol)
 	passages := service.GetPassagesByServer(nil, req.Ticket)
 	common.ResponseSuccess(c, passages)

@@ -1,13 +1,17 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/nameserver"
 	jsoniter "github.com/json-iterator/go"
+	"net/netip"
 	"time"
 )
 
@@ -81,6 +85,18 @@ func GetServersByChatIdentifier(tx *bolt.Tx, chatIdentifier string, includeRelay
 	return servers, nil
 }
 
+func AssignSubDomain(ip netip.Addr) (err error) {
+	domain, _ := common.HostToSNI(ip.String(), config.GetConfig().Host)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	conf := config.GetConfig()
+	ns, err := nameserver.NewNameserver(conf.NameserverName, conf.NameserverToken)
+	if err != nil {
+		return err
+	}
+	return ns.Assign(ctx, domain, ip.String())
+}
+
 // RegisterServer save the server in db
 func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 	f := func(tx *bolt.Tx) error {
@@ -105,8 +121,8 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 			}
 			defer func() {
 				if err == nil {
-					log.Info("server %v info changed. from %v to %v", old.Argument, server.Argument)
 					if old.Argument.InfoHash() != server.Argument.InfoHash() {
+						log.Info("server %v info changed. from %v to %v", old.Argument, server.Argument)
 						if err = AddFeedServer(tx, server, ServerActionServerInfoChanged); err != nil {
 							log.Error("AddFeedServer:", err)
 						}

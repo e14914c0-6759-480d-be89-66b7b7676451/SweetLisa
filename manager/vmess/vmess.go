@@ -8,6 +8,7 @@ import (
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol/vmess"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -16,11 +17,13 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net"
+	"net/url"
 	"time"
 )
 
 func init() {
-	manager.Register("vmess", New)
+	manager.Register(string(model.ProtocolVMessTCP), New)
+	manager.Register(string(model.ProtocolVMessTlsGrpc), NewWithGrpc)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
 	params := *config.GetConfig()
@@ -36,9 +39,10 @@ func init() {
 }
 
 type VMess struct {
-	dialer manager.Dialer
-	arg    manager.ManageArgument
-	cmdKey []byte
+	protocol model.Protocol
+	dialer   manager.Dialer
+	arg      manager.ManageArgument
+	cmdKey   []byte
 }
 
 func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, error) {
@@ -47,9 +51,23 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 		return nil, err
 	}
 	return &VMess{
-		dialer: dialer,
-		arg:    arg,
-		cmdKey: vmess.NewID(id).CmdKey(),
+		dialer:   dialer,
+		arg:      arg,
+		protocol: model.ProtocolVMessTCP,
+		cmdKey:   vmess.NewID(id).CmdKey(),
+	}, nil
+}
+
+func NewWithGrpc(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, error) {
+	id, err := uuid.Parse(arg.Argument.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &VMess{
+		dialer:   dialer,
+		arg:      arg,
+		protocol: model.ProtocolVMessTlsGrpc,
+		cmdKey:   vmess.NewID(id).CmdKey(),
 	}, nil
 }
 
@@ -57,22 +75,35 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	if len(body) >= 1<<17 {
 		log.Trace("GetTurn(vmess): to: %v, len(body): %v", net.JoinHostPort(s.arg.Host, s.arg.Port), len(body))
 	}
+	addr := net.JoinHostPort(s.arg.Host, s.arg.Port)
 	dialer := s.dialer
 	if dialer == nil {
 		dialer = &net.Dialer{}
 	}
-	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(s.arg.Host, s.arg.Port))
+	if s.protocol == model.ProtocolVMessTlsGrpc {
+		sni, err := common.HostToSNI(s.arg.Host, s.arg.RootDomain)
+		if err != nil {
+			return nil, err
+		}
+		u := url.URL{
+			Scheme:   "grpc",
+			Host:     addr,
+			RawQuery: url.Values{"sni": []string{sni}}.Encode(),
+		}
+		dialer = &GrpcLiteDialer{Dialer: dialer, Link: u.String()}
+	}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	vConn, err := vmess.NewConn(conn, vmess.Metadata{
 		Metadata: protocol.Metadata{
-			Network:  "tcp",
 			Type:     protocol.MetadataTypeMsg,
 			Cmd:      cmd,
 			Cipher:   string(vmess.CipherAES128GCM),
 			IsClient: true,
 		},
+		Network: "tcp",
 	}, s.cmdKey)
 	if err != nil {
 		conn.Close()
