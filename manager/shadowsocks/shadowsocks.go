@@ -108,7 +108,7 @@ func (s *Shadowsocks) SyncPassages(ctx context.Context, passages []model.Passage
 	if err != nil {
 		return err
 	}
-	//log.Trace("SyncPassages: to: %v, len(body): %v", s.arg.Host, len(body))
+	log.Trace("SyncPassages: to: %v, len(body): %v", s.arg.Host, len(body))
 	respBody, err := s.GetTurn(ctx, protocol.MetadataCmdSyncPassages, body)
 	if err != nil {
 		return err

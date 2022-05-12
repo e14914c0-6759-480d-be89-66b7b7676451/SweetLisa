@@ -156,15 +156,17 @@ func (b *ServerSyncBox) SyncBackground() {
 					defer subCancel()
 					passages := GetPassagesByServer(nil, svr.Ticket)
 					if err = mng.SyncPassages(subCtx, passages); err != nil {
+						//log.Trace("SyncDone(error): tic: %v: %v", ticket, svr.Name)
 						switch {
 						case common.IsCanceled(err):
 							// pass
-							log.Trace("SyncBackground: cancel: %v", err)
+							log.Trace("SyncBackground (%v): cancel: %v", svr.Name, err)
 						default:
 							log.Info("SyncBackground (%v): %v", svr.Name, err)
 						}
 						return
 					}
+					//log.Trace("SyncDone: tic: %v: %v", ticket, svr.Name)
 				}(ctx, cancel, ticket)
 			default:
 				// no sync request for this ticket
@@ -257,8 +259,6 @@ func ChooseDialer(server model.Server) manager.Dialer {
 	if err != nil {
 		if !errors.Is(err, CNProxyNotSetErr) {
 			log.Warn("ChooseDialer: %v", err)
-		} else {
-			log.Trace("ChooseDialer: %v", err)
 		}
 		return &net.Dialer{}
 	}

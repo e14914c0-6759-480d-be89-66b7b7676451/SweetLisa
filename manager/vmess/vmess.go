@@ -18,7 +18,6 @@ import (
 	"io"
 	"net"
 	"net/url"
-	"time"
 )
 
 func init() {
@@ -92,10 +91,16 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		}
 		dialer = &GrpcLiteDialer{Dialer: dialer, Link: u.String()}
 	}
+	//log.Debug("before DialContext: %v", addr)
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
+	//log.Debug("after DialContext: %v", addr)
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
 	vConn, err := vmess.NewConn(conn, vmess.Metadata{
 		Metadata: protocol.Metadata{
 			Type:     protocol.MetadataTypeMsg,
@@ -105,14 +110,16 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		},
 		Network: "tcp",
 	}, s.cmdKey)
+	//log.Debug("after vmess.NewConn: %v", addr)
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
 	go func() {
 		<-ctx.Done()
-		vConn.SetDeadline(time.Now())
+		vConn.Close()
 	}()
+	//log.Debug("before Write: %v", addr)
 	req := make([]byte, len(body)+4)
 	binary.BigEndian.PutUint32(req, uint32(len(body)))
 	copy(req[4:], body)
@@ -120,12 +127,15 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		vConn.Close()
 		return nil, err
 	}
+	//log.Debug("after Write, before ReadFull: %v", addr)
 
 	// reuse the req variable to read length
 	if _, err = io.ReadFull(vConn, req[:4]); err != nil {
 		vConn.Close()
 		return nil, err
 	}
+	//log.Debug("after ReadFull: %v", addr)
+
 	return &manager.ReaderCloser{Reader: io.LimitReader(vConn, int64(binary.BigEndian.Uint32(req[:4]))), Closer: vConn}, nil
 }
 

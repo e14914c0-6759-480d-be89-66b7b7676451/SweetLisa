@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/transport/grpc_lite"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"net"
 )
 
@@ -14,7 +13,7 @@ type GrpcLiteDialer struct {
 }
 
 func (d *GrpcLiteDialer) Dial(network string, address string) (net.Conn, error) {
-	log.Trace("GrpcLiteDialer.Dial: %v %v, %v", d.Link, network, address)
+	//log.Debug("GrpcLiteDialer.Dial: %v %v, %v", d.Link, network, address)
 	g, err := grpc_lite.NewGrpc(d.Link, d.Dialer)
 	if err != nil {
 		return nil, err
