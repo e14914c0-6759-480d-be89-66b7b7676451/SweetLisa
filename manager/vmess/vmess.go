@@ -8,6 +8,7 @@ import (
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol/vmess"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/transport/grpc"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
@@ -17,7 +18,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net"
-	"net/url"
 )
 
 func init() {
@@ -84,12 +84,10 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		if err != nil {
 			return nil, err
 		}
-		u := url.URL{
-			Scheme:   "grpc",
-			Host:     addr,
-			RawQuery: url.Values{"sni": []string{sni}}.Encode(),
+		dialer = &grpc.Dialer{
+			NextDialer: dialer,
+			ServerName: sni,
 		}
-		dialer = &GrpcLiteDialer{Dialer: dialer, Link: u.String()}
 	}
 	//log.Debug("before DialContext: %v", addr)
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
