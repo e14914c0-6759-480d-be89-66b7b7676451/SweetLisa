@@ -79,7 +79,7 @@ func PostRegister(c *gin.Context) {
 	}
 	go func(req model.Server, chatIdentifier string) {
 		conf := config.GetConfig()
-		if req.Argument.WithTLS() {
+		if req.Argument.Protocol.WithTLS() {
 			// waiting for the record
 			domain, err := common.HostToSNI(model.GetFirstHost(req.Hosts), conf.Host)
 			if err != nil {
@@ -130,7 +130,7 @@ func PostRegister(c *gin.Context) {
 	}(req, ticObj.ChatIdentifier)
 
 	// assign subdomain for tls
-	if conf := config.GetConfig(); conf.NameserverName != "" && conf.NameserverToken != "" && req.Argument.WithTLS() {
+	if conf := config.GetConfig(); conf.NameserverName != "" && conf.NameserverToken != "" && req.Argument.Protocol.WithTLS() {
 		host := model.GetFirstHost(req.Hosts)
 		if ip, e := netip.ParseAddr(host); e == nil {
 			if e = service.AssignSubDomain(ip); e != nil {

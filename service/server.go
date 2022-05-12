@@ -128,7 +128,7 @@ func RegisterServer(wtx *bolt.Tx, server model.Server) (err error) {
 							log.Error("AddFeedServer:", err)
 						}
 						// remove old records
-						if old.Argument.WithTLS() || model.GetFirstHost(old.Hosts) != model.GetFirstHost(server.Hosts) {
+						if old.Argument.Protocol.WithTLS() || model.GetFirstHost(old.Hosts) != model.GetFirstHost(server.Hosts) {
 							if conf := config.GetConfig(); conf.NameserverName != "" && conf.NameserverToken != "" {
 								ns, e := nameserver.NewNameserver(conf.NameserverName, conf.NameserverToken)
 								if e != nil {

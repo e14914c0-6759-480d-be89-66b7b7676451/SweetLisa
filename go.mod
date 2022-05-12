@@ -25,9 +25,16 @@ require (
 )
 
 require (
+	cloud.google.com/go v0.93.3 // indirect
 	ekyu.moe/leb128 v0.0.0-20190626180622-d3722dc409a8 // indirect
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/google/go-cmp v0.5.6 // indirect
+	go.opencensus.io v0.23.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
+	google.golang.org/api v0.56.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
 )
 

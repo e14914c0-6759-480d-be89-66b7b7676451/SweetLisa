@@ -31,6 +31,10 @@ func (p Protocol) Valid() bool {
 	}
 }
 
+func (p Protocol) WithTLS() bool {
+	return common.StringsHas(strings.Split(string(p), "+"), "tls")
+}
+
 type Server struct {
 	// Every server should have a server ticket, which should be included in each API interactions
 	Ticket string
@@ -230,8 +234,4 @@ func (a Argument) InfoHash() string {
 		h.Write([]byte(fmt.Sprint(field.Interface())))
 	}
 	return common.Base95Encoder.Encode(h.Sum(nil))
-}
-
-func (a Argument) WithTLS() bool {
-	return common.StringsHas(strings.Split(string(a.Protocol), "+"), "tls")
 }

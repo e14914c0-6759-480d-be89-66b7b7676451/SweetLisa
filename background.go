@@ -189,6 +189,7 @@ func GoBackgrounds() {
 	})()
 
 	// remove expired feeds
+	// FIXME: remove DNS record after revoking
 	go TickUpdateBackground(model.BucketFeed, 1*time.Hour, func(b []byte, now time.Time) (todo func(wtx *bolt.Tx, b []byte) []byte) {
 		return func(wtx *bolt.Tx, b []byte) []byte {
 			var feed model.ChatFeed
