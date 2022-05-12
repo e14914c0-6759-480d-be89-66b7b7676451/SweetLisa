@@ -3,7 +3,6 @@ module github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa
 go 1.17
 
 require (
-	github.com/Qv2ray/gun v0.0.0-20210314140700-95a65981f2f8
 	github.com/boltdb/bolt v1.3.1
 	github.com/cloudflare/cloudflare-go v0.26.0
 	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v1.1.4
@@ -19,17 +18,17 @@ require (
 	github.com/v2rayA/beego/v2 v2.0.4
 	github.com/yl2chen/cidranger v1.0.2
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
-	google.golang.org/grpc v1.46.0
 	gopkg.in/tucnak/telebot.v2 v2.4.0
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
 require (
-	ekyu.moe/leb128 v0.0.0-20190626180622-d3722dc409a8 // indirect
+	github.com/Qv2ray/gun v0.0.0-20210314140700-95a65981f2f8 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
+	google.golang.org/grpc v1.46.0 // indirect
 )
 
 require (
