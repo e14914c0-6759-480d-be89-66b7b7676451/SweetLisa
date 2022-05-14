@@ -220,7 +220,7 @@ func GetSubscription(c *gin.Context) {
 						Type: "none",
 						Sni:  sni,
 						Host: sni,
-						Path: "GunService",
+						Path: common.SimplyGetParam(arg.Method, "serviceName"),
 						V:    "2",
 					}
 					mutex.Lock()
@@ -289,7 +289,7 @@ func GetSubscription(c *gin.Context) {
 							Type: "none",
 							Sni:  sni,
 							Host: sni,
-							Path: "GunService",
+							Path: common.SimplyGetParam(arg.Method, "serviceName"),
 							V:    "2",
 						}
 						mutex.Lock()

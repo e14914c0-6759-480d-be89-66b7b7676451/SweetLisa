@@ -3,6 +3,7 @@ package model
 import (
 	"crypto/sha1"
 	"fmt"
+	common2 "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"reflect"
 	"strings"
@@ -172,6 +173,7 @@ func GetUserArgument(serverTicket, userTicket string, protocol Protocol) Argumen
 		return Argument{
 			Protocol: protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
+			Method:   "serviceName=" + common2.GenServiceName([]byte(serverTicket)),
 		}
 	default:
 		return Argument{Protocol: ProtocolShadowsocks}
@@ -195,6 +197,7 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, protocol
 		return Argument{
 			Protocol: protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
+			Method:   "serviceName=" + common2.GenServiceName([]byte(relayTicket)),
 		}
 	default:
 		return Argument{Protocol: ProtocolShadowsocks}

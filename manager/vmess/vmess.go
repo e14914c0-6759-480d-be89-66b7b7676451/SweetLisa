@@ -18,6 +18,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -86,19 +87,30 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 			return nil, err
 		}
 		dialer = &grpc.Dialer{
-			NextDialer: dialer,
-			ServerName: sni,
+			NextDialer:  dialer,
+			ServiceName: common.SimplyGetParam(s.arg.Argument.Method, "serviceName"),
+			ServerName:  sni,
 		}
 	}
-	//log.Debug("before DialContext: %v", addr)
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("before DialContext: %v", addr)
+	//}
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
+		//if strings.Contains(addr, "20.239.171.34") {
+		//	log.Debug("after DialContext(err): %v %v", addr, err)
+		//}
 		return nil, err
 	}
-	//log.Debug("after DialContext: %v", addr)
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("after DialContext: %v", addr)
+	//}
 	go func() {
 		<-ctx.Done()
 		conn.SetDeadline(time.Now())
+		//if strings.Contains(addr, "20.239.171.34") {
+		//	log.Debug("ctx.Done(): conn.SetDeadline: %v", addr)
+		//}
 	}()
 	vConn, err := vmess.NewConn(conn, vmess.Metadata{
 		Metadata: protocol.Metadata{
@@ -109,32 +121,50 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 		},
 		Network: "tcp",
 	}, s.cmdKey)
-	//log.Debug("after vmess.NewConn: %v", addr)
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("after vmess.NewConn: %v", addr)
+	//}
 	if err != nil {
+		//if strings.Contains(addr, "20.239.171.34") {
+		//	log.Debug("after vmess.NewConn(err): %v %v", addr, err)
+		//}
 		conn.Close()
 		return nil, err
 	}
 	go func() {
 		<-ctx.Done()
 		vConn.SetDeadline(time.Now())
+		//if strings.Contains(addr, "20.239.171.34") {
+		//	log.Debug("ctx.Done(): vConn.SetDeadline: %v", addr)
+		//}
 	}()
-	//log.Debug("before Write: %v", addr)
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("before Write: %v", addr)
+	//}
 	req := make([]byte, len(body)+4)
 	binary.BigEndian.PutUint32(req, uint32(len(body)))
 	copy(req[4:], body)
 	if _, err = vConn.Write(req); err != nil {
+		if strings.Contains(addr, "20.239.171.34") {
+			log.Debug("vConn.Write(err): %v %v", addr, err)
+		}
 		vConn.Close()
 		return nil, err
 	}
-	//log.Debug("after Write, before ReadFull: %v", addr)
-
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("after Write, before ReadFull: %v", addr)
+	//}
 	// reuse the req variable to read length
 	if _, err = io.ReadFull(vConn, req[:4]); err != nil {
+		//if strings.Contains(addr, "20.239.171.34") {
+		//	log.Debug("io.ReadFull(err): %v %v", addr, err)
+		//}
 		vConn.Close()
 		return nil, err
 	}
-	//log.Debug("after ReadFull: %v", addr)
-
+	//if strings.Contains(addr, "20.239.171.34") {
+	//	log.Debug("after ReadFull: %v", addr)
+	//}
 	return &manager.ReaderCloser{Reader: io.LimitReader(vConn, int64(binary.BigEndian.Uint32(req[:4]))), Closer: vConn}, nil
 }
 
