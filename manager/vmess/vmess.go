@@ -18,6 +18,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net"
+	"time"
 )
 
 func init() {
@@ -97,7 +98,7 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	//log.Debug("after DialContext: %v", addr)
 	go func() {
 		<-ctx.Done()
-		conn.Close()
+		conn.SetDeadline(time.Now())
 	}()
 	vConn, err := vmess.NewConn(conn, vmess.Metadata{
 		Metadata: protocol.Metadata{
@@ -115,7 +116,7 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	}
 	go func() {
 		<-ctx.Done()
-		vConn.Close()
+		vConn.SetDeadline(time.Now())
 	}()
 	//log.Debug("before Write: %v", addr)
 	req := make([]byte, len(body)+4)
