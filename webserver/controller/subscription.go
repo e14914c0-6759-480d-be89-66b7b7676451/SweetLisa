@@ -168,7 +168,8 @@ func GetSubscription(c *gin.Context) {
 	var wg sync.WaitGroup
 	for i, svr := range svrs {
 		arg := model.GetUserArgument(svr.Ticket, ticket, svr.Argument.Protocol)
-		for _, host := range strings.Split(svr.Hosts, ",") {
+		hosts := strings.Split(svr.Hosts, ",")
+		for _, host := range hosts {
 			wg.Add(1)
 			go func(cnt int, host string, svr *model.Server) {
 				defer wg.Done()
@@ -208,7 +209,7 @@ func GetSubscription(c *gin.Context) {
 					mutex.Unlock()
 				case model.ProtocolVMessTlsGrpc:
 					//log.Trace("vmess+tls+grpc")
-					sni, _ := common.HostToSNI(host, config.GetConfig().Host)
+					sni, _ := common.HostToSNI(hosts[0], config.GetConfig().Host)
 					s := sharing_link.V2RayN{
 						Ps:   NameToShow(svr, showQuota, noQuota),
 						Add:  host,
@@ -240,7 +241,8 @@ func GetSubscription(c *gin.Context) {
 				continue
 			}
 			arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket, relay.Argument.Protocol)
-			for _, host := range strings.Split(relay.Hosts, ",") {
+			hosts := strings.Split(relay.Hosts, ",")
+			for _, host := range hosts {
 				wg.Add(1)
 				go func(cnt int, host string, relay *model.Server, svr *model.Server) {
 					defer wg.Done()
@@ -277,7 +279,7 @@ func GetSubscription(c *gin.Context) {
 						mutex.Unlock()
 					case model.ProtocolVMessTlsGrpc:
 						//log.Trace("vmess+tls+grpc")
-						sni, _ := common.HostToSNI(host, config.GetConfig().Host)
+						sni, _ := common.HostToSNI(hosts[0], config.GetConfig().Host)
 						s := sharing_link.V2RayN{
 							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
 							Add:  host,
