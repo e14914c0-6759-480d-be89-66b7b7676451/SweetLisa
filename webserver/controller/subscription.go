@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -179,7 +180,7 @@ func GetSubscription(c *gin.Context) {
 				}
 				//log.Trace("svr: protocol: %v, host: %v, passwd: %v", arg.Protocol, host, arg.Password)
 				switch arg.Protocol {
-				case model.ProtocolShadowsocks:
+				case protocol.ProtocolShadowsocks:
 					//log.Trace("shadowsocks")
 					s := sharing_link.SIP002{
 						Name:     NameToShow(svr, showQuota, noQuota),
@@ -192,7 +193,7 @@ func GetSubscription(c *gin.Context) {
 					mutex.Lock()
 					lines[cnt] = s.ExportToURL()
 					mutex.Unlock()
-				case model.ProtocolVMessTCP:
+				case protocol.ProtocolVMessTCP:
 					//log.Trace("vmess")
 					s := sharing_link.V2RayN{
 						Ps:   NameToShow(svr, showQuota, noQuota),
@@ -207,7 +208,7 @@ func GetSubscription(c *gin.Context) {
 					mutex.Lock()
 					lines[cnt] = s.ExportToURL()
 					mutex.Unlock()
-				case model.ProtocolVMessTlsGrpc:
+				case protocol.ProtocolVMessTlsGrpc:
 					//log.Trace("vmess+tls+grpc")
 					sni, _ := common.HostToSNI(hosts[0], config.GetConfig().Host)
 					s := sharing_link.V2RayN{
@@ -251,7 +252,7 @@ func GetSubscription(c *gin.Context) {
 						return
 					}
 					switch arg.Protocol {
-					case model.ProtocolShadowsocks:
+					case protocol.ProtocolShadowsocks:
 						s := sharing_link.SIP002{
 							Name:     fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
 							Server:   host,
@@ -263,7 +264,7 @@ func GetSubscription(c *gin.Context) {
 						mutex.Lock()
 						lines[cnt] = s.ExportToURL()
 						mutex.Unlock()
-					case model.ProtocolVMessTCP:
+					case protocol.ProtocolVMessTCP:
 						s := sharing_link.V2RayN{
 							Ps:   fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
 							Add:  host,
@@ -277,7 +278,7 @@ func GetSubscription(c *gin.Context) {
 						mutex.Lock()
 						lines[cnt] = s.ExportToURL()
 						mutex.Unlock()
-					case model.ProtocolVMessTlsGrpc:
+					case protocol.ProtocolVMessTlsGrpc:
 						//log.Trace("vmess+tls+grpc")
 						sni, _ := common.HostToSNI(hosts[0], config.GetConfig().Host)
 						s := sharing_link.V2RayN{

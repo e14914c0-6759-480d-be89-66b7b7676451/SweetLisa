@@ -23,8 +23,8 @@ import (
 )
 
 func init() {
-	manager.Register(string(model.ProtocolVMessTCP), New)
-	manager.Register(string(model.ProtocolVMessTlsGrpc), NewWithGrpc)
+	manager.Register(string(protocol.ProtocolVMessTCP), New)
+	manager.Register(string(protocol.ProtocolVMessTlsGrpc), NewWithGrpc)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
 	params := *config.GetConfig()
@@ -40,7 +40,7 @@ func init() {
 }
 
 type VMess struct {
-	protocol model.Protocol
+	protocol protocol.Protocol
 	dialer   manager.Dialer
 	arg      manager.ManageArgument
 	cmdKey   []byte
@@ -54,7 +54,7 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 	return &VMess{
 		dialer:   dialer,
 		arg:      arg,
-		protocol: model.ProtocolVMessTCP,
+		protocol: protocol.ProtocolVMessTCP,
 		cmdKey:   vmess.NewID(id).CmdKey(),
 	}, nil
 }
@@ -67,7 +67,7 @@ func NewWithGrpc(dialer manager.Dialer, arg manager.ManageArgument) (manager.Man
 	return &VMess{
 		dialer:   dialer,
 		arg:      arg,
-		protocol: model.ProtocolVMessTlsGrpc,
+		protocol: protocol.ProtocolVMessTlsGrpc,
 		cmdKey:   vmess.NewID(id).CmdKey(),
 	}, nil
 }
@@ -81,7 +81,7 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	if dialer == nil {
 		dialer = &net.Dialer{}
 	}
-	if s.protocol == model.ProtocolVMessTlsGrpc {
+	if s.protocol == protocol.ProtocolVMessTlsGrpc {
 		sni, err := common.HostToSNI(s.arg.Host, s.arg.RootDomain)
 		if err != nil {
 			return nil, err

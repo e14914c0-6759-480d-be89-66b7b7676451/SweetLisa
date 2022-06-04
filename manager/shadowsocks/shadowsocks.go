@@ -18,7 +18,7 @@ import (
 )
 
 func init() {
-	manager.Register(string(model.ProtocolShadowsocks), New)
+	manager.Register(string(protocol.ProtocolShadowsocks), New)
 
 	// init the log of bitterJohnConfig with sweetLisa's config
 	params := *config.GetConfig()

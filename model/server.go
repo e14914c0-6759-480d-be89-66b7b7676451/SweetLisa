@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	common2 "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/protocol"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"reflect"
 	"strings"
@@ -15,26 +16,6 @@ const (
 	MaxFailureCount = 10
 )
 
-type Protocol string
-
-const (
-	ProtocolVMessTCP     Protocol = "vmess"
-	ProtocolVMessTlsGrpc Protocol = "vmess+tls+grpc"
-	ProtocolShadowsocks  Protocol = "shadowsocks"
-)
-
-func (p Protocol) Valid() bool {
-	switch p {
-	case ProtocolVMessTCP, ProtocolVMessTlsGrpc, ProtocolShadowsocks:
-		return true
-	default:
-		return false
-	}
-}
-
-func (p Protocol) WithTLS() bool {
-	return common.StringsHas(strings.Split(string(p), "+"), "tls")
-}
 
 type Server struct {
 	// Every server should have a server ticket, which should be included in each API interactions
@@ -157,56 +138,56 @@ func GetFirstHost(host string) string {
 	return fields[0]
 }
 
-func GetUserArgument(serverTicket, userTicket string, protocol Protocol) Argument {
-	switch protocol {
-	case ProtocolShadowsocks:
+func GetUserArgument(serverTicket, userTicket string, proto protocol.Protocol) Argument {
+	switch proto {
+	case protocol.ProtocolShadowsocks:
 		h := sha1.New()
 		h.Write([]byte(serverTicket))
 		h.Write([]byte(userTicket))
 		b := h.Sum(nil)
 		return Argument{
-			Protocol: protocol,
+			Protocol: proto,
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
-	case ProtocolVMessTCP, ProtocolVMessTlsGrpc:
+	case protocol.ProtocolVMessTCP, protocol.ProtocolVMessTlsGrpc:
 		return Argument{
-			Protocol: protocol,
+			Protocol: proto,
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(serverTicket)),
 		}
 	default:
-		return Argument{Protocol: ProtocolShadowsocks}
+		return Argument{Protocol: protocol.ProtocolShadowsocks}
 	}
 }
 
-func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, protocol Protocol) Argument {
-	switch protocol {
-	case ProtocolShadowsocks:
+func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, proto protocol.Protocol) Argument {
+	switch proto {
+	case protocol.ProtocolShadowsocks:
 		h := sha1.New()
 		h.Write([]byte(serverTicket))
 		h.Write([]byte(relayTicket))
 		h.Write([]byte(userTicket))
 		b := h.Sum(nil)
 		return Argument{
-			Protocol: protocol,
+			Protocol: proto,
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
-	case ProtocolVMessTCP, ProtocolVMessTlsGrpc:
+	case protocol.ProtocolVMessTCP, protocol.ProtocolVMessTlsGrpc:
 		return Argument{
-			Protocol: protocol,
+			Protocol: proto,
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(relayTicket)),
 		}
 	default:
-		return Argument{Protocol: ProtocolShadowsocks}
+		return Argument{Protocol: protocol.ProtocolShadowsocks}
 	}
 }
 
 type Argument struct {
 	// Required
-	Protocol Protocol `json:",omitempty"`
+	Protocol protocol.Protocol `json:",omitempty"`
 	// Optional
 	Username string `json:",omitempty"`
 	// Required
