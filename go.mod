@@ -13,6 +13,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
+	github.com/mzz2017/softwind v0.0.0-20220604073236-81398751c939
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417
 	github.com/stevenroose/gonfig v0.1.5
 	github.com/v2rayA/beego/v2 v2.0.4
@@ -24,7 +25,6 @@ require (
 
 require (
 	github.com/Qv2ray/gun v0.0.0-20210314140700-95a65981f2f8 // indirect
-	github.com/adrg/xdg v0.4.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
