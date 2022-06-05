@@ -18,6 +18,11 @@ https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/6,quota
 # force to disable the quotas
 https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/noquota
 
+# filter out endpoint
+https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/endpoint
+
+# filter out relay
+https://sweetlisa.tuta.cc/api/ticket/<your user ticket>/sub/relay
 ```
 
 **Telegram Commands**
