@@ -168,7 +168,7 @@
                 })
             } else if (action === 'Renew') {
                 let Ticket = modalEl.querySelector('#ticket').value;
-                if ('/' in Ticket) {
+                if (Ticket.indexOf('/') >= 0) {
                     let g = /\/ticket\/(.+?)\/sub/.exec(Ticket);
                     if (!g) {
                         g = /\/sub\?.*url=[^&]+%2Fticket%2F(.+?)%2Fsub/.exec(Ticket);
