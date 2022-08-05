@@ -13,7 +13,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
-	github.com/mzz2017/softwind v0.0.0-20220604073236-81398751c939
+	github.com/mzz2017/softwind v0.0.0-20220620134411-41b185cb79f5
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417
 	github.com/stevenroose/gonfig v0.1.5
 	github.com/v2rayA/beego/v2 v2.0.4
