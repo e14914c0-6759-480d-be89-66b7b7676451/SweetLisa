@@ -113,7 +113,7 @@
                 ${action === 'Renew' ? `
                 <div class="mui-textfield mui-textfield--float-label">
                     <input id="ticket" type="text" value="">
-                    <label>Ticket</label>
+                    <label>Ticket or Subscription Link</label>
                 </div>
                 ` : ''}
                 <div class="mui-radio">
@@ -149,7 +149,7 @@
                 <button class="mui-btn mui-btn--primary mui-btn--raised" id="submit">${action}</button>
             </div>
         `
-        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
+        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('click', e => e.target.select()));
         modalEl.querySelector('#submit').addEventListener('click', e => {
             const TypeMapper = {'user': 0, 'server': 1, 'relay': 2};
             let strType = modalEl.querySelector('input[name="ticketType"]:checked').value;
@@ -168,6 +168,17 @@
                 })
             } else if (action === 'Renew') {
                 let Ticket = modalEl.querySelector('#ticket').value;
+                if ('/' in Ticket) {
+                    let g = /\/ticket\/(.+?)\/sub/.exec(Ticket);
+                    if (!g) {
+                        g = /\/sub\?.*url=[^&]+%2Fticket%2F(.+?)%2Fsub/.exec(Ticket);
+                    }
+                    if (!g) {
+                        alert(`Invalid subscription link.`);
+                        return;
+                    }
+                    Ticket = g[1]
+                }
                 fetch(`/api/ticket/${Ticket}/renew`, {
                     method: 'POST',
                     mode: 'same-origin',
