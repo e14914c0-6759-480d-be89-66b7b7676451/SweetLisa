@@ -74,7 +74,7 @@
                         ` : ''}
                     </div>
                     `
-        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('focus', e => e.target.select()));
+        Array.from(modalEl.querySelectorAll('.easy-selectable')).forEach(x => x.addEventListener('click', e => e.target.select()));
         // show modal
         mui.overlay('on', modalEl);
     }
