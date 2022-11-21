@@ -66,11 +66,7 @@ func PostRegister(c *gin.Context) {
 		return
 	}
 	// verify the server ticket
-	ticObj, err := service.GetValidTicketObj(nil, req.Ticket)
-	if err != nil {
-		common.ResponseError(c, err)
-		return
-	}
+	ticObj := c.MustGet("TicketObj").(*model.Ticket)
 	switch ticObj.Type {
 	case model.TicketTypeServer, model.TicketTypeRelay:
 	default:

@@ -2,7 +2,9 @@ package router
 
 import (
 	"embed"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/webserver/controller"
 	"github.com/gin-gonic/gin"
 	"html/template"
@@ -65,7 +67,16 @@ func Run(f embed.FS) error {
 		chat.GET("verification", controller.GetVerification)
 	}
 
-	ticket := api.Group("ticket/:Ticket")
+	ticket := api.Group("ticket/:Ticket", func(c *gin.Context) {
+		ticket := c.Param("Ticket")
+		// verify the server ticket
+		ticObj, err := service.GetValidTicketObj(nil, ticket)
+		if err != nil {
+			common.ResponseError(c, err)
+			return
+		}
+		c.Set("TicketObj", &ticObj)
+	})
 	{
 		ticket.GET("sub", controller.GetSubscription)
 		ticket.GET("sub/:flags", controller.GetSubscription)

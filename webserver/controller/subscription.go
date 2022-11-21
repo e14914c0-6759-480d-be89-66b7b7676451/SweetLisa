@@ -70,12 +70,7 @@ func NameToShow(server *model.Server, showQuota bool, noQuota bool) string {
 // GetSubscription returns the user's subscription
 func GetSubscription(c *gin.Context) {
 	ticket := c.Param("Ticket")
-	// verify the ticket
-	ticObj, err := service.GetValidTicketObj(nil, ticket)
-	if err != nil {
-		ResponseError(c, err)
-		return
-	}
+	ticObj := c.MustGet("Ticket").(*model.Ticket)
 	switch ticObj.Type {
 	case model.TicketTypeUser, model.TicketTypeRelay:
 	default:
