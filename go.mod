@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/cloudflare/cloudflare-go v0.26.0
-	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v1.1.4
+	github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn v1.2.8
 	github.com/eknkc/basex v1.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/google/uuid v1.3.0
@@ -53,7 +53,7 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
 	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
