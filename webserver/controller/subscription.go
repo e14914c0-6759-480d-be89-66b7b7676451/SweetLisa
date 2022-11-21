@@ -70,7 +70,7 @@ func NameToShow(server *model.Server, showQuota bool, noQuota bool) string {
 // GetSubscription returns the user's subscription
 func GetSubscription(c *gin.Context) {
 	ticket := c.Param("Ticket")
-	ticObj := c.MustGet("Ticket").(*model.Ticket)
+	ticObj := c.MustGet("TicketObj").(*model.Ticket)
 	switch ticObj.Type {
 	case model.TicketTypeUser, model.TicketTypeRelay:
 	default:
