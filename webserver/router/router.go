@@ -73,6 +73,7 @@ func Run(f embed.FS) error {
 		ticObj, err := service.GetValidTicketObj(nil, ticket)
 		if err != nil {
 			common.ResponseError(c, err)
+			c.Abort()
 			return
 		}
 		c.Set("TicketObj", &ticObj)
