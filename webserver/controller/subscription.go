@@ -61,10 +61,10 @@ func NameToShow(server *model.Server, showQuota bool, noQuota bool) string {
 	fields := regexp.MustCompile(`^\[(.+)]\s*(.+)$`).FindStringSubmatch(server.Name)
 	if len(fields) == 3 {
 		// [100Mbps] Racknerd -> [100Mbps 472.7GiB] Racknerd
-		return fmt.Sprintf("[%v %.1fGiB] %v", fields[1], fRemainingGiB, fields[2])
+		return fmt.Sprintf("[%v %.1fGB] %v", fields[1], fRemainingGiB, fields[2])
 	}
 	// Racknerd -> [472.7GiB] Racknerd
-	return fmt.Sprintf("[%.1fGiB] %v", fRemainingGiB, server.Name)
+	return fmt.Sprintf("[%.1fGB] %v", fRemainingGiB, server.Name)
 }
 
 // GetSubscription returns the user's subscription
