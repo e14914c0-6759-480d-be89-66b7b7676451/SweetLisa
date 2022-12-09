@@ -16,7 +16,6 @@ const (
 	MaxFailureCount = 10
 )
 
-
 type Server struct {
 	// Every server should have a server ticket, which should be included in each API interactions
 	Ticket string
@@ -48,11 +47,11 @@ type BandwidthLimit struct {
 	// ResetMonth indicate if this month has reset. For example, if ResetMonth = 3, reset will not happen again in March.
 	ResetMonth time.Month
 
-	// UplinkLimitGiB is the limit of uplink bandwidth in GiB. Zero means no limit.
+	// UplinkLimitGiB is the limit of uplink bandwidth in GB (keep using "GiB" in name for compatibility). Zero means no limit.
 	UplinkLimitGiB int64 `json:",omitempty"`
-	// DownlinkLimitGiB is the limit of downlink bandwidth in GiB Zero means no limit.
+	// DownlinkLimitGiB is the limit of downlink bandwidth in GB (keep using "GiB" in name for compatibility). Zero means no limit.
 	DownlinkLimitGiB int64 `json:",omitempty"`
-	// TotalLimitGiB is the limit of downlink plus uplink bandwidth in GiB Zero means no limit.
+	// TotalLimitGiB is the limit of downlink plus uplink bandwidth in GB (keep using "GiB" in name for compatibility). Zero means no limit.
 	TotalLimitGiB int64 `json:",omitempty"`
 
 	// UplinkKiB is the "transmit bytes" in /proc/net/dev of the biggest iface.
@@ -67,13 +66,13 @@ type BandwidthLimit struct {
 }
 
 func (l *BandwidthLimit) Exhausted() bool {
-	if l.DownlinkLimitGiB > 0 && l.DownlinkKiB >= l.DownlinkInitialKiB+1024*1024*l.DownlinkLimitGiB {
+	if l.DownlinkLimitGiB > 0 && l.DownlinkKiB >= l.DownlinkInitialKiB+1000*1000*l.DownlinkLimitGiB {
 		return true
 	}
-	if l.UplinkLimitGiB > 0 && l.UplinkKiB >= l.UplinkInitialKiB+1024*1024*l.UplinkLimitGiB {
+	if l.UplinkLimitGiB > 0 && l.UplinkKiB >= l.UplinkInitialKiB+1000*1000*l.UplinkLimitGiB {
 		return true
 	}
-	if l.TotalLimitGiB > 0 && l.UplinkKiB+l.DownlinkKiB >= l.UplinkInitialKiB+l.DownlinkInitialKiB+1024*1024*l.TotalLimitGiB {
+	if l.TotalLimitGiB > 0 && l.UplinkKiB+l.DownlinkKiB >= l.UplinkInitialKiB+l.DownlinkInitialKiB+1000*1000*l.TotalLimitGiB {
 		return true
 	}
 	return false

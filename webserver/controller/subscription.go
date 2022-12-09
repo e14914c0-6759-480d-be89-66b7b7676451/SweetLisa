@@ -30,17 +30,17 @@ var cachedResolver = dnscache.Resolver{}
 func NameToShow(server *model.Server, showQuota bool, noQuota bool) string {
 	remaining := make([]int64, 0, 3)
 	if server.BandwidthLimit.TotalLimitGiB > 0 {
-		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1024*1024-
+		remaining = append(remaining, server.BandwidthLimit.TotalLimitGiB*1000*1000-
 			(server.BandwidthLimit.UplinkKiB-server.BandwidthLimit.UplinkInitialKiB)-
 			(server.BandwidthLimit.DownlinkKiB-server.BandwidthLimit.DownlinkInitialKiB))
 	}
 	if server.BandwidthLimit.UplinkLimitGiB+server.BandwidthLimit.DownlinkLimitGiB > 0 {
 		var r int64
 		if server.BandwidthLimit.UplinkLimitGiB > 0 {
-			r += server.BandwidthLimit.UplinkLimitGiB*1024*1024 - (server.BandwidthLimit.UplinkKiB - server.BandwidthLimit.UplinkInitialKiB)
+			r += server.BandwidthLimit.UplinkLimitGiB*1000*1000 - (server.BandwidthLimit.UplinkKiB - server.BandwidthLimit.UplinkInitialKiB)
 		}
 		if server.BandwidthLimit.DownlinkLimitGiB > 0 {
-			r += server.BandwidthLimit.DownlinkLimitGiB*1024*1024 - (server.BandwidthLimit.DownlinkKiB - server.BandwidthLimit.DownlinkInitialKiB)
+			r += server.BandwidthLimit.DownlinkLimitGiB*1000*1000 - (server.BandwidthLimit.DownlinkKiB - server.BandwidthLimit.DownlinkInitialKiB)
 		}
 		remaining = append(remaining, r)
 	}
