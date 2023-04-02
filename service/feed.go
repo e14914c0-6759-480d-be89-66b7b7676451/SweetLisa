@@ -22,7 +22,7 @@ const (
 	ServerActionLaunch             ServerAction = "🚀 Launched"
 	ServerActionReconnect                       = "🀄️ Reconnected"
 	ServerActionDisconnect                      = "💥 Disconnected"
-	ServerActionBandwidthExhausted              = "🈳 Bandwidth Exhausted"
+	ServerActionBandwidthExhausted              = "🔄 Bandwidth Exhausted"
 	ServerActionBandwidthReset                  = "🈵 Bandwidth Reset"
 	ServerActionServerInfoChanged               = "🎲 Server Info Changed"
 )
