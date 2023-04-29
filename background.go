@@ -38,8 +38,8 @@ func GoBackgrounds() {
 			log.Warn("clean ticket: %v", err)
 			return false, nil
 		}
-		// there is still 48 hours for renewal
-		if common.Expired(ticObj.ExpireAt.Add(48 * time.Hour)) {
+		// there is still 7*24 hours for renewal
+		if common.Expired(ticObj.ExpireAt.Add(7 * 24 * time.Hour)) {
 			// really delete
 			return true, []string{ticObj.ChatIdentifier}
 		}

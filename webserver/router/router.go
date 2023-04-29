@@ -67,7 +67,9 @@ func Run(f embed.FS) error {
 		chat.GET("verification", controller.GetVerification)
 	}
 
-	ticket := api.Group("ticket/:Ticket", func(c *gin.Context) {
+	api.POST("ticket/:Ticket/renew", controller.PostRenew)
+
+	validTicket := api.Group("ticket/:Ticket", func(c *gin.Context) {
 		ticket := c.Param("Ticket")
 		// verify the server ticket
 		ticObj, err := service.GetValidTicketObj(nil, ticket)
@@ -79,10 +81,9 @@ func Run(f embed.FS) error {
 		c.Set("TicketObj", &ticObj)
 	})
 	{
-		ticket.GET("sub", controller.GetSubscription)
-		ticket.GET("sub/:flags", controller.GetSubscription)
-		ticket.POST("register", controller.PostRegister)
-		ticket.POST("renew", controller.PostRenew)
+		validTicket.GET("sub", controller.GetSubscription)
+		validTicket.GET("sub/:flags", controller.GetSubscription)
+		validTicket.POST("register", controller.PostRegister)
 	}
 	return engine.Run(config.GetConfig().Address)
 }

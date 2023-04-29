@@ -58,7 +58,11 @@ func PostRenew(c *gin.Context) {
 		return
 	}
 	ticket := c.Param("Ticket")
-	ticObj := c.MustGet("TicketObj").(*model.Ticket)
+	ticObj, err := service.GetTicketObj(nil, ticket)
+	if err != nil {
+		common.ResponseError(c, err)
+		return
+	}
 	// verify the VerificationCode
 	if err := service.Verified(nil, req.VerificationCode, ticObj.ChatIdentifier); err != nil {
 		common.ResponseError(c, err)
