@@ -5,6 +5,16 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"net"
+	"strings"
+	"time"
+
+	"github.com/daeuniverse/softwind/netproxy"
+	"github.com/daeuniverse/softwind/protocol"
+	"github.com/daeuniverse/softwind/protocol/direct"
+	"github.com/daeuniverse/softwind/protocol/vmess"
+	"github.com/daeuniverse/softwind/transport/grpc"
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
@@ -13,13 +23,6 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/mzz2017/softwind/protocol"
-	"github.com/mzz2017/softwind/protocol/vmess"
-	"github.com/mzz2017/softwind/transport/grpc"
-	"io"
-	"net"
-	"strings"
-	"time"
 )
 
 func init() {
@@ -79,7 +82,9 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 	addr := net.JoinHostPort(s.arg.Host, s.arg.Port)
 	dialer := s.dialer
 	if dialer == nil {
-		dialer = &net.Dialer{}
+		dialer = &netproxy.ContextDialerConverter{
+			Dialer: direct.SymmetricDirect,
+		}
 	}
 	if s.protocol == protocol.ProtocolVMessTlsGrpc {
 		sni, err := common.HostToSNI(s.arg.Host, s.arg.RootDomain)
@@ -120,7 +125,7 @@ func (s *VMess) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []by
 			IsClient: true,
 		},
 		Network: "tcp",
-	}, s.cmdKey)
+	}, addr, s.cmdKey)
 	//if strings.Contains(addr, "20.239.171.34") {
 	//	log.Debug("after vmess.NewConn: %v", addr)
 	//}

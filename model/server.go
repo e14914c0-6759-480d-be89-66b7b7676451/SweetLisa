@@ -3,12 +3,13 @@ package model
 import (
 	"crypto/sha1"
 	"fmt"
-	common2 "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/common"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
-	"github.com/mzz2017/softwind/protocol"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/daeuniverse/softwind/protocol"
+	common2 "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/common"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 )
 
 const (

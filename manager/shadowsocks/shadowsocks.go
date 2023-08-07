@@ -4,17 +4,22 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net"
+	"time"
+
+	"github.com/daeuniverse/softwind/ciphers"
+	"github.com/daeuniverse/softwind/common"
+	"github.com/daeuniverse/softwind/netproxy"
+	"github.com/daeuniverse/softwind/protocol"
+	"github.com/daeuniverse/softwind/protocol/direct"
+	ss "github.com/daeuniverse/softwind/protocol/shadowsocks"
 	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
-	"github.com/mzz2017/softwind/protocol"
-	ss "github.com/mzz2017/softwind/protocol/shadowsocks"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
-	"io"
-	"net"
-	"time"
 )
 
 func init() {
@@ -37,12 +42,12 @@ type Shadowsocks struct {
 	dialer     manager.Dialer
 	arg        manager.ManageArgument
 	masterKey  []byte
-	cipherConf ss.CipherConf
+	cipherConf *ciphers.CipherConf
 }
 
 func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, error) {
-	cipherConf := ss.CiphersConf[arg.Argument.Method]
-	masterKey := ss.EVPBytesToKey(arg.Argument.Password, cipherConf.KeyLen)
+	cipherConf := ciphers.AeadCiphersConf[arg.Argument.Method]
+	masterKey := common.EVPBytesToKey(arg.Argument.Password, cipherConf.KeyLen)
 	return &Shadowsocks{
 		dialer:     dialer,
 		arg:        arg,
@@ -57,7 +62,9 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, bod
 	}
 	dialer := s.dialer
 	if dialer == nil {
-		dialer = &net.Dialer{}
+		dialer = &netproxy.ContextDialerConverter{
+			Dialer: direct.SymmetricDirect,
+		}
 	}
 	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(s.arg.Host, s.arg.Port))
 	if err != nil {

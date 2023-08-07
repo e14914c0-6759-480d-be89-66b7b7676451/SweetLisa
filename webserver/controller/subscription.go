@@ -4,6 +4,16 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
+	"net/http"
+	"net/netip"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/daeuniverse/softwind/protocol"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -11,16 +21,7 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/service"
 	"github.com/gin-gonic/gin"
-	"github.com/mzz2017/softwind/protocol"
 	"github.com/rs/dnscache"
-	"inet.af/netaddr"
-	"net"
-	"net/http"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const PasswordReserve = "__SWEETLISA__"
@@ -334,7 +335,7 @@ func ValidNetwork(server string, v4v6Mask uint8) (ok bool) {
 }
 
 func ServerNetType(server string) (typ uint8) {
-	if ip, err := netaddr.ParseIP(server); err != nil {
+	if ip, err := netip.ParseAddr(server); err != nil {
 		addrs, err := cachedResolver.LookupHost(context.Background(), server)
 		if err != nil {
 			// cannot resolve

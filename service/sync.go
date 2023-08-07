@@ -4,7 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/boltdb/bolt"
+	"github.com/daeuniverse/softwind/netproxy"
+	"github.com/daeuniverse/softwind/protocol/direct"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
@@ -14,11 +22,6 @@ import (
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
 	"golang.org/x/net/proxy"
-	"net"
-	"net/url"
-	"strconv"
-	"sync"
-	"time"
 )
 
 const ServerSyncBoxCleanTimeout = 6 * time.Hour
@@ -254,28 +257,36 @@ func ReqSyncPassagesByChatIdentifier(tx *bolt.Tx, chatIdentifier string, include
 }
 
 // ChooseDialer choose CNProxy dialer for servers in China, and net.Dialer for others
-func ChooseDialer(server model.Server) manager.Dialer {
+func ChooseDialer(server model.Server) netproxy.ContextDialer {
 	cnDialer, err := GetCNProxyDialer()
 	if err != nil {
 		if !errors.Is(err, CNProxyNotSetErr) {
 			log.Warn("ChooseDialer: %v", err)
 		}
-		return &net.Dialer{}
+		return &netproxy.ContextDialerConverter{
+			Dialer: direct.SymmetricDirect,
+		}
 	}
 	ip := model.GetFirstHost(server.Hosts)
 	if net.ParseIP(ip) == nil {
 		ips, err := net.LookupHost(ip)
 		if err != nil {
 			log.Debug("ChooseDialer: %v", err)
-			return &net.Dialer{}
+			return &netproxy.ContextDialerConverter{
+				Dialer: direct.SymmetricDirect,
+			}
 		}
 		ip = ips[0]
 	}
 	if !ipip.IsChinaIPLookupTable(ip) {
-		return &net.Dialer{}
+		return &netproxy.ContextDialerConverter{
+			Dialer: direct.SymmetricDirect,
+		}
 	}
 	log.Trace("ChooseDialer: use CN-proxy for %v", ip)
-	return &manager.DialerConverter{Dialer: cnDialer}
+	return &netproxy.ContextDialerConverter{Dialer: &manager.DialerConverter{
+		Dialer: cnDialer,
+	}}
 }
 
 func GetCNProxyDialer() (proxy.Dialer, error) {
