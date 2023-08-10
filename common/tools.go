@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/eknkc/basex"
 	"net/netip"
 	"net/url"
 	"os/user"
@@ -12,6 +11,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/eknkc/basex"
 )
 
 const Alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789"
@@ -253,4 +254,11 @@ func SimplyGetParam(source string, key string) (value string) {
 		}
 	}
 	return ""
+}
+
+func SetValue(values *url.Values, key string, value string) {
+	if value == "" {
+		return
+	}
+	values.Set(key, value)
 }

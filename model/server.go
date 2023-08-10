@@ -156,6 +156,12 @@ func GetUserArgument(serverTicket, userTicket string, proto protocol.Protocol) A
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(serverTicket)),
 		}
+	case protocol.ProtocolJuicity:
+		return Argument{
+			Protocol: proto,
+			Username: common.StringToUUID5(serverTicket + "|uuid|" + userTicket),
+			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
+		}
 	default:
 		return Argument{Protocol: protocol.ProtocolShadowsocks}
 	}
@@ -179,6 +185,12 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, proto pr
 			Protocol: proto,
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(relayTicket)),
+		}
+	case protocol.ProtocolJuicity:
+		return Argument{
+			Protocol: proto,
+			Username: common.StringToUUID5(serverTicket + "|uuid|" + relayTicket + "|uuid|" + userTicket),
+			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
 		}
 	default:
 		return Argument{Protocol: protocol.ProtocolShadowsocks}

@@ -14,8 +14,6 @@ import (
 	"github.com/daeuniverse/softwind/protocol"
 	"github.com/daeuniverse/softwind/protocol/direct"
 	ss "github.com/daeuniverse/softwind/protocol/shadowsocks"
-	johnLog "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/pkg/log"
-	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
@@ -24,18 +22,6 @@ import (
 
 func init() {
 	manager.Register(string(protocol.ProtocolShadowsocks), New)
-
-	// init the log of bitterJohnConfig with sweetLisa's config
-	params := *config.GetConfig()
-	var logFile string
-	if params.LogFile != "" {
-		logFile += ".bitterJohn"
-	}
-	logWay := "console"
-	if params.LogFile != "" {
-		logWay = "file"
-	}
-	johnLog.InitLog(logWay, params.LogFile, params.LogLevel, params.LogMaxDays, params.LogDisableColor, params.LogDisableTimestamp)
 }
 
 type Shadowsocks struct {
@@ -74,7 +60,7 @@ func (s *Shadowsocks) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, bod
 		Type:     protocol.MetadataTypeMsg,
 		Cmd:      cmd,
 		Cipher:   s.arg.Argument.Method,
-		IsClient: false,
+		IsClient: true,
 	}, s.masterKey, nil)
 	if err != nil {
 		conn.Close()

@@ -10,6 +10,7 @@ import (
 // Dialer is used to create connection.
 type Dialer interface {
 	// DialContext connects to the given address
+	Dial(network, addr string) (c netproxy.Conn, err error)
 	DialContext(ctx context.Context, network, addr string) (c netproxy.Conn, err error)
 }
 

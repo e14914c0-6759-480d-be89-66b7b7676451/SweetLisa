@@ -2,9 +2,11 @@ package main
 
 import (
 	"embed"
+
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/bot"
 	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/bot/command_handler"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
+	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager/juicity"
 	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager/shadowsocks"
 	_ "github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager/vmess"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"

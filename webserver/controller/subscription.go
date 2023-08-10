@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/daeuniverse/softwind/protocol"
+	johnJuicity "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/juicity"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -233,6 +234,22 @@ func GetSubscription(c *gin.Context) {
 						mutex.Lock()
 						lines[cnt] = s.ExportToURL()
 						mutex.Unlock()
+					case protocol.ProtocolJuicity:
+						s := sharing_link.Juicity{
+							Name:                  NameToShow(svr, showQuota, noQuota),
+							Server:                host,
+							Port:                  svr.Port,
+							User:                  arg.Username,
+							Password:              arg.Password,
+							Sni:                   johnJuicity.Domain,
+							AllowInsecure:         false,
+							CongestionControl:     "bbr",
+							PinnedCertchainSha256: common.SimplyGetParam(svr.Argument.Method, "pinned_certchain_sha256"),
+							Protocol:              "juicity",
+						}
+						mutex.Lock()
+						lines[cnt] = s.ExportToURL()
+						mutex.Unlock()
 					default:
 						log.Warn("unexpected protocol: %v", arg.Protocol)
 					}
@@ -301,6 +318,22 @@ func GetSubscription(c *gin.Context) {
 								Host: sni,
 								Path: common.SimplyGetParam(arg.Method, "serviceName"),
 								V:    "2",
+							}
+							mutex.Lock()
+							lines[cnt] = s.ExportToURL()
+							mutex.Unlock()
+						case protocol.ProtocolJuicity:
+							s := sharing_link.Juicity{
+								Name:                  fmt.Sprintf("%v -> %v", NameToShow(relay, showQuota, noQuota), NameToShow(svr, showQuota, noQuota)),
+								Server:                host,
+								Port:                  relay.Port,
+								User:                  arg.Username,
+								Password:              arg.Password,
+								Sni:                   johnJuicity.Domain,
+								AllowInsecure:         false,
+								CongestionControl:     "bbr",
+								PinnedCertchainSha256: common.SimplyGetParam(relay.Argument.Method, "pinned_certchain_sha256"),
+								Protocol:              "juicity",
 							}
 							mutex.Lock()
 							lines[cnt] = s.ExportToURL()
