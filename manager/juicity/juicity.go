@@ -17,7 +17,7 @@ import (
 	"github.com/daeuniverse/softwind/protocol/direct"
 	"github.com/daeuniverse/softwind/protocol/juicity"
 	johnCommon "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/common"
-	johnJuicity "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/juicity"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/manager"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -46,14 +46,14 @@ func New(dialer manager.Dialer, arg manager.ManageArgument) (manager.Manager, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode PinnedCertchainSha256")
 	}
-	d, err = juicity.NewDialer(dialer, protocol.Header{
+	d, err = server.NewDialer("juicity", dialer, &protocol.Header{
 		ProxyAddress: net.JoinHostPort(arg.Host, arg.Port),
 		SNI:          "",
 		Feature1:     "bbr",
 		TlsConfig: &tls.Config{
 			NextProtos:         []string{"h3"},
 			MinVersion:         tls.VersionTLS13,
-			ServerName:         johnJuicity.Domain,
+			ServerName:         server.JuicityDomain,
 			InsecureSkipVerify: true,
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 				if !bytes.Equal(johnCommon.GenerateCertChainHash(rawCerts), pinnedHash) {
@@ -86,7 +86,6 @@ func (s *Juicity) GetTurn(ctx context.Context, cmd protocol.MetadataCmd, body []
 
 	conn, err := s.dialer.DialCmdMsg(cmd)
 	if err != nil {
-		conn.Close()
 		return nil, err
 	}
 	go func() {

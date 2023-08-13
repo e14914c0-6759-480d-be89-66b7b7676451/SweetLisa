@@ -138,37 +138,38 @@ func GetFirstHost(host string) string {
 	return fields[0]
 }
 
-func GetUserArgument(serverTicket, userTicket string, proto protocol.Protocol) Argument {
-	switch proto {
+func GetUserArgument(serverTicket, userTicket string, mngrArg Argument) Argument {
+	switch mngrArg.Protocol {
 	case protocol.ProtocolShadowsocks:
 		h := sha1.New()
 		h.Write([]byte(serverTicket))
 		h.Write([]byte(userTicket))
 		b := h.Sum(nil)
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
 	case protocol.ProtocolVMessTCP, protocol.ProtocolVMessTlsGrpc:
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(serverTicket)),
 		}
 	case protocol.ProtocolJuicity:
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Username: common.StringToUUID5(serverTicket + "|uuid|" + userTicket),
 			Password: common.StringToUUID5(serverTicket + ":" + userTicket),
+			Method:   mngrArg.Method,
 		}
 	default:
 		return Argument{Protocol: protocol.ProtocolShadowsocks}
 	}
 }
 
-func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, proto protocol.Protocol) Argument {
-	switch proto {
+func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, mngrArg Argument) Argument {
+	switch mngrArg.Protocol {
 	case protocol.ProtocolShadowsocks:
 		h := sha1.New()
 		h.Write([]byte(serverTicket))
@@ -176,21 +177,22 @@ func GetRelayUserArgument(serverTicket, relayTicket, userTicket string, proto pr
 		h.Write([]byte(userTicket))
 		b := h.Sum(nil)
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Password: common.Base62Encoder.Encode(b)[:21],
 			Method:   "chacha20-ietf-poly1305",
 		}
 	case protocol.ProtocolVMessTCP, protocol.ProtocolVMessTlsGrpc:
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
 			Method:   "serviceName=" + common2.GenServiceName([]byte(relayTicket)),
 		}
 	case protocol.ProtocolJuicity:
 		return Argument{
-			Protocol: proto,
+			Protocol: mngrArg.Protocol,
 			Username: common.StringToUUID5(serverTicket + "|uuid|" + relayTicket + "|uuid|" + userTicket),
 			Password: common.StringToUUID5(serverTicket + ":" + relayTicket + ":" + userTicket),
+			Method:   mngrArg.Method,
 		}
 	default:
 		return Argument{Protocol: protocol.ProtocolShadowsocks}

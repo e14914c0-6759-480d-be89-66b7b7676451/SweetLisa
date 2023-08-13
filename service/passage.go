@@ -2,13 +2,14 @@ package service
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/boltdb/bolt"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/db"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/pkg/log"
 	jsoniter "github.com/json-iterator/go"
-	"strconv"
 )
 
 func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Passage) {
@@ -107,18 +108,19 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 			// server inbounds are for users and relays
 			for _, ticket := range userTickets {
 				passages = append(passages, model.Passage{
-					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket, serverObj.Argument.Protocol)},
+					In: model.In{Argument: model.GetUserArgument(serverTicket, ticket, serverObj.Argument)},
 				})
 			}
 			if !serverObj.NoRelay {
 				for _, relay := range relays {
-					if relay.FailureCount >= model.MaxFailureCount || relay.BandwidthLimit.Exhausted() {
+					if notAlive, exhausted := relay.FailureCount >= model.MaxFailureCount, relay.BandwidthLimit.Exhausted(); notAlive || exhausted {
+						log.Info("Skip relay %v due to [notAlive:%v exhausted:%v]", relay.Name, notAlive, exhausted)
 						continue
 					}
 					passages = append(passages, model.Passage{
 						In: model.In{
 							From:     relay.Name,
-							Argument: model.GetUserArgument(serverTicket, relay.Ticket, serverObj.Argument.Protocol),
+							Argument: model.GetUserArgument(serverTicket, relay.Ticket, serverObj.Argument),
 						},
 					})
 				}
@@ -133,9 +135,9 @@ func GetPassagesByServer(tx *bolt.Tx, serverTicket string) (passages []model.Pas
 				if svr.FailureCount >= model.MaxFailureCount || svr.BandwidthLimit.Exhausted() {
 					continue
 				}
-				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket, svr.Argument.Protocol)
+				argRelayServer := model.GetUserArgument(svr.Ticket, serverTicket, svr.Argument)
 				for _, userTicket := range userTickets {
-					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket, serverObj.Argument.Protocol)
+					argUserRelayServer := model.GetRelayUserArgument(svr.Ticket, serverTicket, userTicket, serverObj.Argument)
 					passages = append(passages, model.Passage{
 						In: model.In{Argument: argUserRelayServer},
 						Out: &model.Out{

@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/daeuniverse/softwind/protocol"
-	johnJuicity "github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server/juicity"
+	"github.com/e14914c0-6759-480d-be89-66b7b7676451/BitterJohn/server"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/common"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/config"
 	"github.com/e14914c0-6759-480d-be89-66b7b7676451/SweetLisa/model"
@@ -174,7 +174,7 @@ func GetSubscription(c *gin.Context) {
 	var wg sync.WaitGroup
 	if (typeMask & 1) == 1 {
 		for i, svr := range svrs {
-			arg := model.GetUserArgument(svr.Ticket, ticket, svr.Argument.Protocol)
+			arg := model.GetUserArgument(svr.Ticket, ticket, svr.Argument)
 			hosts := strings.Split(svr.Hosts, ",")
 			for _, host := range hosts {
 				wg.Add(1)
@@ -241,7 +241,7 @@ func GetSubscription(c *gin.Context) {
 							Port:                  svr.Port,
 							User:                  arg.Username,
 							Password:              arg.Password,
-							Sni:                   johnJuicity.Domain,
+							Sni:                   server.JuicityDomain,
 							AllowInsecure:         false,
 							CongestionControl:     "bbr",
 							PinnedCertchainSha256: common.SimplyGetParam(svr.Argument.Method, "pinned_certchain_sha256"),
@@ -265,7 +265,7 @@ func GetSubscription(c *gin.Context) {
 				if svr.NoRelay {
 					continue
 				}
-				arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket, relay.Argument.Protocol)
+				arg := model.GetRelayUserArgument(svr.Ticket, relay.Ticket, ticket, relay.Argument)
 				hosts := strings.Split(relay.Hosts, ",")
 				for _, host := range hosts {
 					wg.Add(1)
@@ -329,7 +329,7 @@ func GetSubscription(c *gin.Context) {
 								Port:                  relay.Port,
 								User:                  arg.Username,
 								Password:              arg.Password,
-								Sni:                   johnJuicity.Domain,
+								Sni:                   server.JuicityDomain,
 								AllowInsecure:         false,
 								CongestionControl:     "bbr",
 								PinnedCertchainSha256: common.SimplyGetParam(relay.Argument.Method, "pinned_certchain_sha256"),
